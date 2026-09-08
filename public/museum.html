@@ -1,0 +1,1833 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Work+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<title>Museum of Us</title>
+<style>
+  :root{
+    --wall:#53221d;
+    --wall-deep:#3a1712;
+    --ink:#170c08;
+    --ink-2:#241209;
+    --gold:#c9a24b;
+    --gold-bright:#eecf8e;
+    --gold-dim:#8a6a2f;
+    --paper:#f6efdf;
+    --paper-2:#ede2c8;
+    --text-ink:#2b2118;
+    --text-muted:#7a6a52;
+    --scrim:rgba(12,5,4,.82);
+    --focus:#eecf8e;
+  }
+
+  *{box-sizing:border-box;}
+  [hidden]{display:none !important;}
+  body{
+    margin:0;
+    background:var(--wall-deep);
+    color:var(--paper);
+    font-family:'Work Sans',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2{text-wrap:balance;}
+  ::selection{background:var(--gold-dim);color:var(--paper);}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important;}
+  }
+
+  /* ---------- gallery wall (real photo background, full-bleed) ---------- */
+  .museum{
+    background:var(--wall-deep);
+    margin:0;
+  }
+
+  .gallery-scroll{
+    width:100%;
+    height:100vh;
+    height:100dvh;
+    overflow:hidden;
+  }
+  .gallery-scene{
+    position:relative;
+    width:100%;
+    height:100%;
+    background-image:url("/assets/wall-background.jpg");
+    background-size:cover;
+    background-repeat:no-repeat;
+    background-position:center bottom;
+  }
+
+  @media (max-width:768px){
+    .gallery-scroll{
+      overflow-x:auto;
+      overflow-y:hidden;
+      -webkit-overflow-scrolling:touch;
+    }
+    .gallery-scene{
+      width:calc(100vh * 1728 / 1117);
+      width:calc(100dvh * 1728 / 1117);
+      height:100vh;
+      height:100dvh;
+      background-size:100% 100%;
+    }
+  }
+
+  .artwork{
+    position:absolute;
+    left:var(--x);
+    top:var(--y);
+    width:var(--w);
+    animation:riseIn .8s cubic-bezier(.2,.7,.3,1) both;
+    animation-delay:calc(var(--i) * 90ms);
+  }
+  @keyframes riseIn{
+    from{opacity:0; transform:translateY(14px);}
+    to{opacity:1; transform:translateY(0);}
+  }
+
+  .frame-wrap{
+    position:relative;
+    display:block;
+    width:100%;
+    cursor:pointer;
+    transform:rotate(var(--r,0deg));
+    transition:transform .35s ease, filter .35s ease;
+    background:transparent;
+    border:none;
+    padding:0;
+    font:inherit;
+    color:inherit;
+  }
+  .frame-wrap:hover,
+  .frame-wrap:focus-visible{
+    transform:rotate(0deg) scale(1.06) translateY(-3%);
+    z-index:5;
+  }
+  .frame-wrap:focus-visible{outline:3px solid var(--focus); outline-offset:6px; border-radius:2px;}
+
+  .top-controls{
+    position:fixed;
+    top:18px;
+    right:18px;
+    z-index:60;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+
+  .preview-toggle{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 18px;
+    border:1px solid var(--gold-dim);
+    border-radius:20px;
+    background:rgba(23,12,8,.78);
+    color:var(--gold-bright);
+    font-family:'Work Sans',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:.03em;
+    cursor:pointer;
+    box-shadow:0 6px 18px rgba(0,0,0,.35);
+    transition:background .2s ease, border-color .2s ease, color .2s ease;
+  }
+  .preview-toggle:hover{background:rgba(23,12,8,.92); border-color:var(--gold);}
+  .preview-toggle svg{width:15px;height:15px;flex:none;}
+  .preview-toggle .icon-eye-off{display:none;}
+  .preview-toggle.is-preview{background:var(--gold-bright); color:var(--ink); border-color:var(--gold-bright);}
+  .preview-toggle.is-preview:hover{background:#fff;}
+  .preview-toggle.is-preview .icon-eye{display:none;}
+  .preview-toggle.is-preview .icon-eye-off{display:block;}
+
+  .music-toggle{
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    border:1px solid var(--gold-dim);
+    background:rgba(23,12,8,.78);
+    color:var(--gold-bright);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    padding:0;
+    flex:none;
+    box-shadow:0 6px 18px rgba(0,0,0,.35);
+    transition:background .2s ease, border-color .2s ease, color .2s ease;
+  }
+  .music-toggle:hover{background:rgba(23,12,8,.92); border-color:var(--gold);}
+  .music-toggle svg{width:17px;height:17px;flex:none;}
+  .music-toggle .icon-music-on{display:none;}
+  .music-toggle.is-playing{background:var(--gold-bright); color:var(--ink); border-color:var(--gold-bright);}
+  .music-toggle.is-playing:hover{background:#fff;}
+  .music-toggle.is-playing .icon-music-off{display:none;}
+  .music-toggle.is-playing .icon-music-on{display:block;}
+
+  .reset-toggle{
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    border:1px solid var(--gold-dim);
+    background:rgba(23,12,8,.78);
+    color:var(--gold-bright);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    padding:0;
+    flex:none;
+    box-shadow:0 6px 18px rgba(0,0,0,.35);
+    transition:background .2s ease, border-color .2s ease, color .2s ease;
+  }
+  .reset-toggle:hover{background:rgba(23,12,8,.92); border-color:var(--gold);}
+  .reset-toggle svg{width:17px;height:17px;flex:none;}
+  body.preview-mode .reset-toggle{display:none;}
+
+  .share-gift-toggle{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 18px;
+    border:1px solid var(--gold-bright);
+    border-radius:20px;
+    background:var(--gold-bright);
+    color:var(--ink);
+    font-family:'Work Sans',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:.03em;
+    cursor:pointer;
+    box-shadow:0 6px 18px rgba(0,0,0,.35);
+    transition:background .2s ease, border-color .2s ease, color .2s ease;
+  }
+  .share-gift-toggle:hover{background:#fff; border-color:#fff;}
+  .share-gift-toggle svg{width:15px;height:15px;flex:none;}
+
+  body.gift-mode .reset-toggle,
+  body.gift-mode .preview-toggle,
+  body.gift-mode .share-gift-toggle{display:none;}
+
+  .confirm-overlay{
+    position:fixed;
+    inset:0;
+    z-index:90;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(10,5,3,.6);
+    padding:20px;
+  }
+  .confirm-overlay[hidden]{display:none;}
+  .confirm-modal{
+    position:relative;
+    background:var(--paper);
+    color:var(--ink);
+    border-radius:10px;
+    max-width:360px;
+    width:100%;
+    padding:24px;
+    box-shadow:0 20px 60px rgba(0,0,0,.45);
+    font-family:'Work Sans',sans-serif;
+  }
+  .confirm-modal.share-modal{max-width:440px;}
+  #shareStepSaving .confirm-actions{justify-content:center;margin-top:18px;}
+  .modal-close-x{
+    position:absolute;
+    top:14px;
+    right:14px;
+    width:30px;
+    height:30px;
+    border-radius:50%;
+    border:1px solid var(--gold-dim);
+    background:transparent;
+    color:var(--ink);
+    font-size:18px;
+    line-height:1;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:background .2s ease;
+  }
+  .modal-close-x:hover{background:rgba(0,0,0,.06);}
+  #shareStepSaving{text-align:center;}
+  .share-spinner{
+    width:36px;
+    height:36px;
+    margin:0 auto 16px;
+    border-radius:50%;
+    border:3px solid var(--gold-dim);
+    border-top-color:var(--gold-bright);
+    animation:share-spin .9s linear infinite;
+  }
+  @keyframes share-spin{
+    to{transform:rotate(360deg);}
+  }
+  .confirm-modal h3{
+    margin:0 0 10px;
+    font-family:'Playfair Display', serif;
+    font-size:20px;
+    color:var(--ink);
+  }
+  .confirm-modal p{
+    margin:0 0 20px;
+    font-size:14px;
+    line-height:1.5;
+    color:var(--ink-2);
+  }
+  .confirm-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+  }
+  .confirm-cancel, .confirm-danger, .confirm-primary{
+    font-family:'Work Sans',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:.02em;
+    padding:10px 16px;
+    border-radius:20px;
+    cursor:pointer;
+    border:1px solid transparent;
+    transition:background .2s ease, border-color .2s ease, color .2s ease;
+  }
+  .confirm-cancel{
+    background:transparent;
+    border-color:var(--gold-dim);
+    color:var(--ink);
+  }
+  .confirm-cancel:hover{background:rgba(0,0,0,.06);}
+  .confirm-danger{
+    background:#8a2f2f;
+    color:#fff;
+  }
+  .confirm-danger:hover{background:#a53838;}
+  .confirm-primary{
+    background:var(--gold-bright);
+    color:var(--ink);
+    border-color:var(--gold-bright);
+    box-shadow:0 6px 18px rgba(0,0,0,.35);
+  }
+  .confirm-primary:hover{background:#fff; border-color:#fff;}
+  .confirm-primary:disabled{opacity:.6; cursor:default;}
+  .confirm-primary:disabled:hover{background:var(--gold-bright); border-color:var(--gold-bright);}
+
+  .share-link-row{
+    display:flex;
+    gap:8px;
+    margin-bottom:20px;
+  }
+  .share-link-row input{
+    flex:1;
+    min-width:0;
+    padding:10px 12px;
+    border-radius:8px;
+    border:1px solid var(--gold-dim);
+    background:#fff;
+    color:var(--ink);
+    font-family:'Work Sans',sans-serif;
+    font-size:12.5px;
+  }
+  .share-link-row button{
+    font-family:'Work Sans',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    padding:10px 16px;
+    border-radius:8px;
+    border:1px solid var(--gold-dim);
+    background:transparent;
+    color:var(--ink);
+    cursor:pointer;
+    flex:none;
+    transition:background .2s ease, border-color .2s ease;
+  }
+  .share-link-row button:hover{background:rgba(0,0,0,.06);}
+  .share-link-row button.copied{background:var(--gold-bright); border-color:var(--gold-bright);}
+
+  @media (max-width:760px){
+    .top-controls{top:12px; right:12px; gap:8px; flex-wrap:wrap; justify-content:flex-end;}
+    .preview-toggle{padding:8px 13px; font-size:11.5px; gap:6px;}
+    .music-toggle{width:34px; height:34px;}
+    .music-toggle svg{width:15px;height:15px;}
+    .reset-toggle{width:34px; height:34px;}
+    .reset-toggle svg{width:15px;height:15px;}
+    .share-gift-toggle{padding:8px 13px; font-size:11.5px; gap:6px;}
+    .share-gift-toggle svg{width:13px;height:13px;}
+  }
+
+  .frame-visual{
+    position:relative;
+    width:100%;
+    aspect-ratio:var(--ar,4/5);
+    filter:drop-shadow(0 9px 7px rgba(15,6,4,.38));
+  }
+  .frame-visual .photo-slot{
+    position:absolute;
+    overflow:hidden;
+    background:#000;
+    -webkit-transform:translateZ(0);
+    transform:translateZ(0);
+    -webkit-mask-image:-webkit-radial-gradient(circle, #fff 100%, #fff 100%);
+    will-change:transform;
+  }
+  .frame-visual .photo-slot img{
+    position:absolute;
+    display:block;
+    max-width:none;
+    user-select:none;
+    -webkit-user-drag:none;
+  }
+  .frame-visual .photo-slot.draggable{
+    cursor:grab;
+    touch-action:none;
+  }
+  .frame-visual .photo-slot.draggable.dragging{
+    cursor:grabbing;
+  }
+  .frame-visual img.frame-graphic{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    display:block;
+    pointer-events:none;
+  }
+
+  .mini-label{
+    display:block;
+    width:34%;
+    margin:8px auto 0;
+    opacity:.92;
+  }
+  /* a few frames carry their plaque out to the side (flush with the
+     frame's bottom edge) rather than centered below it, matching the
+     reference gallery-wall layout */
+  .mini-label.mini-label--left,
+  .mini-label.mini-label--right{
+    position:absolute;
+    bottom:0;
+    margin:0;
+  }
+  .mini-label.mini-label--left{ left:-36%; }
+  .mini-label.mini-label--right{ left:102%; }
+
+  /* ---------- chandelier (interactive, decorative) ---------- */
+  .chandelier{
+    position:absolute;
+    top:0%;
+    left:50.5%;
+    width:16.2%;
+    transform:translateX(-50%) rotate(0deg);
+    transform-origin:50% 0%;
+    z-index:2;
+  }
+  .chandelier img{
+    display:block;
+    width:100%;
+    height:auto;
+    pointer-events:none;
+    user-select:none;
+    -webkit-user-drag:none;
+  }
+  .chandelier.swing-left{ animation:chandelierSwingLeft 2.4s ease-in-out; }
+  .chandelier.swing-right{ animation:chandelierSwingRight 2.4s ease-in-out; }
+  @keyframes chandelierSwingLeft{
+    0%   { transform:translateX(-50%) rotate(0deg); }
+    8%   { transform:translateX(-50%) rotate(-9deg); }
+    22%  { transform:translateX(-50%) rotate(6deg); }
+    36%  { transform:translateX(-50%) rotate(-4deg); }
+    50%  { transform:translateX(-50%) rotate(2.5deg); }
+    64%  { transform:translateX(-50%) rotate(-1.4deg); }
+    78%  { transform:translateX(-50%) rotate(0.7deg); }
+    90%  { transform:translateX(-50%) rotate(-0.3deg); }
+    100% { transform:translateX(-50%) rotate(0deg); }
+  }
+  @keyframes chandelierSwingRight{
+    0%   { transform:translateX(-50%) rotate(0deg); }
+    8%   { transform:translateX(-50%) rotate(9deg); }
+    22%  { transform:translateX(-50%) rotate(-6deg); }
+    36%  { transform:translateX(-50%) rotate(4deg); }
+    50%  { transform:translateX(-50%) rotate(-2.5deg); }
+    64%  { transform:translateX(-50%) rotate(1.4deg); }
+    78%  { transform:translateX(-50%) rotate(-0.7deg); }
+    90%  { transform:translateX(-50%) rotate(0.3deg); }
+    100% { transform:translateX(-50%) rotate(0deg); }
+  }
+
+  /* ---------- spectators (foreground, decorative) ---------- */
+  .spectator{
+    position:absolute;
+    bottom:1%;
+    pointer-events:none;
+    filter:drop-shadow(0 10px 14px rgba(0,0,0,.4));
+  }
+  .spectator img{
+    height:100%;
+    width:auto;
+    display:block;
+  }
+
+  /* ---------- viewing room (lightbox) ---------- */
+  .viewing-room{
+    position:fixed;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:28px;
+    background:rgba(23,12,8,.55);
+    opacity:0;
+    visibility:hidden;
+    transition:opacity .28s ease;
+    z-index:50;
+  }
+  .viewing-room.open{opacity:1; visibility:visible;}
+
+  .viewing-card{
+    position:relative;
+    max-height:88vh;
+    margin-right:556px;
+    transform:translateY(10px) scale(.98);
+    transition:transform .32s cubic-bezier(.2,.7,.3,1);
+  }
+  .viewing-room.plaque-bottom .viewing-card{
+    margin-right:0;
+  }
+  .viewing-room.plaque-left .viewing-card{
+    margin-right:0;
+    margin-left:556px;
+  }
+  .viewing-room.open .viewing-card{transform:translateY(0) scale(1);}
+
+  .close-viewing{
+    position:absolute;
+    top:-14px; right:-14px;
+    width:38px;height:38px;
+    border-radius:50%;
+    border:2px solid var(--gold);
+    background:var(--ink);
+    color:var(--gold-bright);
+    font-size:20px;
+    line-height:1;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 6px 16px rgba(0,0,0,.5);
+    z-index:2;
+  }
+  .close-viewing:hover{background:var(--ink-2);}
+
+  .big-frame{
+    position:relative;
+    height:76vh;
+    width:auto;
+    max-width:min(58vw, calc(100vw - 660px));
+  }
+  .viewing-room.plaque-bottom .big-frame{
+    height:auto;
+    max-width:min(72vw, 980px);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  .big-frame .frame-visual{
+    height:100%;
+    width:auto;
+    filter:drop-shadow(0 16px 12px rgba(15,6,4,.42));
+  }
+  .viewing-room.plaque-bottom .big-frame .frame-visual{
+    height:58vh;
+    width:auto;
+  }
+
+  .swap-photo{
+    position:absolute;
+    left:50%;
+    top:100%;
+    margin-top:16px;
+    transform:translateX(-50%);
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:9px 16px;
+    border:1px solid var(--gold-dim);
+    border-radius:2px;
+    background:rgba(0,0,0,.25);
+    color:var(--gold-bright);
+    font-family:'Work Sans',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:.03em;
+    cursor:pointer;
+    transition:background .2s ease, border-color .2s ease;
+  }
+  .swap-photo:hover{background:rgba(0,0,0,.4); border-color:var(--gold);}
+  .swap-photo svg{width:15px;height:15px;}
+  .swap-photo input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;}
+  .viewing-room.plaque-bottom .swap-photo{
+    position:static;
+    margin-top:16px;
+    transform:none;
+  }
+
+  .zoom-rail{
+    position:absolute;
+    left:100%;
+    top:50%;
+    margin-left:14px;
+    transform:translateY(-50%);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+    padding:12px 9px;
+    border:1px solid var(--gold-dim);
+    border-radius:2px;
+    background:rgba(0,0,0,.25);
+    z-index:1;
+  }
+  .zoom-rail .zoom-btn{
+    background:none;
+    border:none;
+    color:var(--gold-bright);
+    cursor:pointer;
+    padding:2px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:color .2s ease;
+  }
+  .zoom-rail .zoom-btn:hover{color:#fff;}
+  .zoom-rail .zoom-btn svg{width:13px;height:13px;}
+  .zoom-rail input[type=range]{
+    -webkit-appearance:slider-vertical;
+    writing-mode:vertical-lr;
+    direction:rtl;
+    width:6px;
+    height:110px;
+    accent-color:var(--gold-bright);
+    cursor:pointer;
+  }
+
+  .frame-hint{
+    position:absolute;
+    bottom:100%;
+    margin-bottom:10px;
+    left:50%;
+    transform:translateX(-50%);
+    padding:5px 13px;
+    border:1px solid var(--gold-dim);
+    border-radius:20px;
+    background:rgba(0,0,0,.45);
+    color:var(--gold-bright);
+    font-family:'Work Sans',sans-serif;
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:.02em;
+    white-space:nowrap;
+    pointer-events:none;
+    z-index:1;
+    opacity:1;
+    transition:opacity .4s ease;
+  }
+  .frame-hint.is-hidden{opacity:0;}
+  .frame-hint .hint-mobile{display:none;}
+
+  .wall-plaque{
+    position:absolute;
+    left:100%;
+    bottom:0;
+    margin-left:36px;
+    width:520px;
+    background:#fff;
+    color:#1c1e21;
+    padding:28px 26px;
+    box-shadow:0 20px 45px rgba(0,0,0,.3), 0 2px 10px rgba(0,0,0,.12);
+  }
+  .viewing-room.plaque-left .wall-plaque{
+    left:auto;
+    right:100%;
+    margin-left:0;
+    margin-right:36px;
+  }
+  .viewing-room.plaque-bottom .wall-plaque{
+    position:static;
+    left:auto;
+    right:auto;
+    bottom:auto;
+    top:auto;
+    margin:26px 0 0;
+    width:520px;
+    transform:none;
+  }
+  .plaque-title{
+    margin:0 0 14px;
+    font-family:'Work Sans',sans-serif;
+    font-weight:700;
+    font-size:22px;
+    line-height:1.25;
+    color:#1c1e21;
+    outline:none;
+    min-height:1.3em;
+    white-space:nowrap;
+    overflow:hidden;
+  }
+  .plaque-title:empty::before{content:attr(data-placeholder); color:#9aa0a6;}
+
+  .plaque-meta{
+    display:flex;
+    gap:4px;
+    font-style:italic;
+    font-size:14px;
+    color:#6b7076;
+    margin-bottom:16px;
+  }
+  .plaque-meta span[contenteditable]{outline:none;}
+  .plaque-meta span[contenteditable]:empty::before{content:attr(data-placeholder); color:#b0b4b9;}
+  .plaque-meta .sep{color:#6b7076;}
+
+  .plaque-note{
+    margin:0;
+    font-family:'Work Sans',sans-serif;
+    font-size:14.5px;
+    line-height:1.6;
+    color:#3c4046;
+    outline:none;
+    min-height:3.3em;
+  }
+  .plaque-note:empty::before{content:attr(data-placeholder); color:#9aa0a6; font-style:normal;}
+
+  .note-counter{
+    margin-top:6px;
+    font-family:'Work Sans',sans-serif;
+    font-size:11px;
+    color:#b0b4b9;
+    text-align:right;
+    transition:color .15s ease;
+  }
+  .note-counter.is-over{color:#b45309;}
+
+  .viewing-room.preview .swap-photo,
+  .viewing-room.preview .note-counter{visibility:hidden; pointer-events:none;}
+  .viewing-room.preview .close-viewing{display:none;}
+  .viewing-room.preview .plaque-title,
+  .viewing-room.preview .plaque-note,
+  .viewing-room.preview .plaque-meta span{cursor:default;}
+
+  /* Desktop preview is hover-driven off the wall thumbnail itself: the popup
+     must not intercept the pointer, or it steals hover away from the frame
+     the instant it appears and immediately flaps shut again. */
+  .viewing-room.preview{pointer-events:none;}
+
+  @media (max-width:760px){
+    /* Mobile preview is tap-driven, so the popup needs to catch taps again
+       (to close via the × button or by tapping the backdrop), and it keeps
+       its × since there's no hover-to-close on a touchscreen. */
+    .viewing-room.preview{pointer-events:auto;}
+    .viewing-room.preview .close-viewing{display:flex;}
+    .viewing-card,
+    .viewing-room.plaque-bottom .viewing-card,
+    .viewing-room.plaque-left .viewing-card{display:flex; flex-direction:column; align-items:center; max-height:92vh; width:100%; margin-right:0; margin-left:0;}
+    .big-frame,
+    .viewing-room.plaque-bottom .big-frame{height:auto; max-width:100%; width:100%; display:flex; flex-direction:column; align-items:center;}
+    .big-frame .frame-visual,
+    .viewing-room.plaque-bottom .big-frame .frame-visual{height:auto; width:min(100%, calc(52vh * var(--ar-num, 1)));}
+    .swap-photo,
+    .viewing-room.plaque-bottom .swap-photo{position:static; margin-top:16px; transform:none;}
+    .zoom-rail{display:none;}
+    .frame-hint .hint-desktop{display:none;}
+    .frame-hint .hint-mobile{display:inline;}
+    .wall-plaque,
+    .viewing-room.plaque-bottom .wall-plaque,
+    .viewing-room.plaque-left .wall-plaque{position:static; left:auto; right:auto; margin:16px 0 0; width:100%; max-width:320px; transform:none; padding:18px 16px;}
+    .plaque-title{font-size:17px; margin:0 0 8px;}
+    .plaque-meta{font-size:12px; margin-bottom:9px;}
+    .plaque-note{font-size:12.5px; line-height:1.5; min-height:2.7em;}
+  }
+</style>
+</head>
+<body>
+
+<div class="top-controls">
+  <button class="reset-toggle" id="resetToggle" type="button" aria-label="Reset all frames">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+  </button>
+  <button class="music-toggle" id="musicToggle" type="button" aria-label="Play music" aria-pressed="false">
+    <svg class="icon-music-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><path d="M2 2l20 20" stroke-width="2"/></svg>
+    <svg class="icon-music-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+  </button>
+  <button class="preview-toggle" id="previewToggle" type="button" aria-pressed="false">
+    <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+    <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a19.87 19.87 0 0 1 4.22-5.53M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a19.86 19.86 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>
+    <span id="previewToggleLabel">Preview</span>
+  </button>
+  <button class="share-gift-toggle" id="shareToggle" type="button" aria-label="Share gift link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+    <span>Share Gift</span>
+  </button>
+</div>
+<audio id="bgAudio" loop></audio>
+
+<div class="confirm-overlay" id="resetOverlay" hidden aria-hidden="true">
+  <div class="confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="resetConfirmTitle">
+    <h3 id="resetConfirmTitle">Start afresh?</h3>
+    <p>This clears every photo, title and caption in the gallery back to blank frames. This can't be undone.</p>
+    <div class="confirm-actions">
+      <button class="confirm-cancel" id="resetCancelBtn" type="button">Cancel</button>
+      <button class="confirm-danger" id="resetConfirmBtn" type="button">Reset everything</button>
+    </div>
+  </div>
+</div>
+
+<div class="confirm-overlay" id="shareOverlay" hidden aria-hidden="true">
+  <div class="confirm-modal share-modal" role="alertdialog" aria-modal="true" aria-labelledby="shareTitle">
+    <div id="shareStepConfirm">
+      <h3 id="shareTitle">Share this gift?</h3>
+      <p>This saves your edits, then gives you a link that you can share with whoever you're curating this museum for.</p>
+      <div class="confirm-actions">
+        <button class="confirm-cancel" id="shareCancelBtn" type="button">Cancel</button>
+        <button class="confirm-primary" id="shareGoBtn" type="button">Get link</button>
+      </div>
+    </div>
+    <div id="shareStepSaving" hidden>
+      <div class="share-spinner" aria-hidden="true"></div>
+      <h3>Saving your gift</h3>
+      <p id="shareSavingCaption">Dusting frames&hellip;</p>
+      <div class="confirm-actions">
+        <button class="confirm-cancel" id="shareSavingCancelBtn" type="button">Cancel</button>
+      </div>
+    </div>
+    <div id="shareStepDone" hidden>
+      <button class="modal-close-x" id="shareDoneCloseBtn" type="button" aria-label="Close">&times;</button>
+      <h3>Your gift link is ready</h3>
+      <p>Share this with whoever you're gifting the museum to. I'm sure they'll love it!</p>
+      <div class="share-link-row">
+        <input type="text" id="shareLinkInput" readonly aria-label="Gift link">
+        <button type="button" id="shareCopyBtn">Copy</button>
+      </div>
+    </div>
+    <div id="shareStepError" hidden>
+      <h3>Couldn't save your gift</h3>
+      <p id="shareErrorMessage">Something went wrong. Please try again.</p>
+      <div class="confirm-actions">
+        <button class="confirm-cancel" id="shareErrorCloseBtn" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="museum">
+  <div class="gallery-scroll">
+    <div class="gallery-scene" id="gallery" aria-label="Gallery of artworks"></div>
+  </div>
+</div>
+
+<div class="viewing-room" id="viewingRoom" aria-hidden="true">
+  <div class="viewing-card" role="dialog" aria-modal="true" aria-label="Enlarged artwork">
+    <button class="close-viewing" id="closeViewing" aria-label="Close">&times;</button>
+
+    <div class="big-frame" id="bigFrame">
+      <label class="swap-photo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="1.5"/><circle cx="9" cy="11" r="2"/><path d="M21 16l-5-4-4 3-3-2-6 5"/></svg>
+        <span id="swapPhotoLabel">Change photo</span>
+        <input type="file" accept="image/*" id="bigFileInput">
+      </label>
+
+      <div class="wall-plaque">
+        <h2 class="plaque-title" id="plaqueTitle" contenteditable="true" data-placeholder="Insert Artwork Title"></h2>
+        <div class="plaque-meta">
+          <span id="plaqueMedium" contenteditable="true" data-placeholder="Photograph"></span><span class="sep">,</span>
+          <span id="plaqueYear" contenteditable="true" data-placeholder="2026"></span>
+        </div>
+        <p class="plaque-note" id="plaqueNote" contenteditable="true" data-placeholder="Insert cute text about the artwork that will make your partner shed a tear of joy or two"></p>
+        <div class="note-counter" id="noteCounter">0 / 160</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var ASSET_URIS = {
+    soundtrack: "/assets/soundtrack.mp3",
+    chandelier: "/assets/chandelier.png",
+    frame_1: "/assets/frame_1.png",
+    frame_1_border: "/assets/frame_1_border.png",
+    frame_2: "/assets/frame_2.png",
+    frame_2_border: "/assets/frame_2_border.png",
+    frame_3: "/assets/frame_3.png",
+    frame_3_border: "/assets/frame_3_border.png",
+    frame_4: "/assets/frame_4.png",
+    frame_4_border: "/assets/frame_4_border.png",
+    frame_5: "/assets/frame_5.png",
+    frame_5_border: "/assets/frame_5_border.png",
+    frame_6: "/assets/frame_6.png",
+    frame_6_border: "/assets/frame_6_border.png",
+    frame_7: "/assets/frame_7.png",
+    frame_7_border: "/assets/frame_7_border.png",
+    frame_8: "/assets/frame_8.png",
+    frame_8_border: "/assets/frame_8_border.png",
+    frame_9: "/assets/frame_9.png",
+    frame_9_border: "/assets/frame_9_border.png",
+    label_1: "/assets/label_1.png",
+    label_2: "/assets/label_2.png",
+    label_3: "/assets/label_3.png",
+    label_4: "/assets/label_4.png",
+    label_5: "/assets/label_5.png",
+    label_6: "/assets/label_6.png",
+    label_7: "/assets/label_7.png",
+    label_8: "/assets/label_8.png",
+    label_9: "/assets/label_9.png",
+    spectator_1: "/assets/spectator_1.png",
+    spectator_2: "/assets/spectator_2.png",
+    spectator_3: "/assets/spectator_3.png",
+    spectator_4: "/assets/spectator_4.png",
+    bigframe_1: "/assets/bigframe_1.png",
+    bigframe_1_border: "/assets/bigframe_1_border.png",
+    bigframe_2: "/assets/bigframe_2.png",
+    bigframe_2_border: "/assets/bigframe_2_border.png",
+    bigframe_3: "/assets/bigframe_3.png",
+    bigframe_3_border: "/assets/bigframe_3_border.png",
+    bigframe_4: "/assets/bigframe_4.png",
+    bigframe_4_border: "/assets/bigframe_4_border.png",
+    bigframe_5: "/assets/bigframe_5.png",
+    bigframe_5_border: "/assets/bigframe_5_border.png",
+    bigframe_6: "/assets/bigframe_6.png",
+    bigframe_6_border: "/assets/bigframe_6_border.png",
+    bigframe_7: "/assets/bigframe_7.png",
+    bigframe_7_border: "/assets/bigframe_7_border.png",
+    bigframe_8: "/assets/bigframe_8.png",
+    bigframe_8_border: "/assets/bigframe_8_border.png",
+    bigframe_9: "/assets/bigframe_9.png",
+    bigframe_9_border: "/assets/bigframe_9_border.png"
+  };
+
+  var FRAME_DEFS = {
+    1:{ar:'529/425', borderAr:'798/645', inset:[0.100,0.075,0.100,0.120], bigInset:[0.1712,0.1958,0.1611,0.1973]},
+    2:{ar:'529/425', borderAr:'813/648', inset:[0.095,0.075,0.095,0.120], bigInset:[0.1754,0.1949,0.1693,0.2011]},
+    3:{ar:'450/455', borderAr:'687/693', inset:[0.125,0.125,0.125,0.125], bigInset:[0.1417,0.1348,0.1432,0.1434]},
+    4:{ar:'603/464', borderAr:'915/702', inset:[0.135,0.200,0.135,0.135], bigInset:[0.1506,0.2399,0.1790,0.1715]},
+    5:{ar:'449/398', borderAr:'681/612', inset:[0.100,0.090,0.100,0.140], bigInset:[0.1709,0.1899,0.1679,0.1964]},
+    6:{ar:'450/531', borderAr:'687/804', inset:[0.135,0.160,0.135,0.205], bigInset:[0.2611,0.2172,0.2611,0.2234]},
+    7:{ar:'447/548', borderAr:'687/836', inset:[0.150,0.120,0.150,0.160], bigInset:[0.1476,0.1204,0.1446,0.1252]},
+    8:{ar:'449/527', borderAr:'678/801', inset:[0.140,0.110,0.140,0.140], bigInset:[0.2114,0.1905,0.2055,0.1755]},
+    9:{ar:'449/499', borderAr:'672/747', inset:[0.140,0.110,0.140,0.130], bigInset:[0.1850,0.1760,0.1835,0.1720]}
+  };
+
+  var artworks = [];
+
+  var BLANK_ARTWORK_DEFAULTS = {title:'', medium:'Photograph', year:'2026', note:''};
+
+  var spectators = [
+    { key:'spectator_1', left:2,  height:29.1 },
+    { key:'spectator_2', left:40, height:32 },
+    { key:'spectator_3', left:65, height:28.2 },
+    { key:'spectator_4', left:84, height:30.9 }
+  ];
+
+  var gallery = document.getElementById('gallery');
+  var viewingRoom = document.getElementById('viewingRoom');
+  var bigFrame = document.getElementById('bigFrame');
+  var bigFileInput = document.getElementById('bigFileInput');
+  var plaqueTitle = document.getElementById('plaqueTitle');
+  var plaqueMedium = document.getElementById('plaqueMedium');
+  var plaqueYear = document.getElementById('plaqueYear');
+  var plaqueNote = document.getElementById('plaqueNote');
+  var noteCounter = document.getElementById('noteCounter');
+  var NOTE_SOFT_LIMIT = 160;
+  var closeBtn = document.getElementById('closeViewing');
+
+  var currentId = null;
+  var lastValidTitle = '';
+  var activeBigPhoto = null;
+
+  var PAGE_PARAMS = new URLSearchParams(window.location.search);
+  var MUSEUM_ID = PAGE_PARAMS.get('id');
+  var EDIT_TOKEN = PAGE_PARAMS.get('token');
+  var CAN_EDIT = false;
+  var GIFT_MODE = false; // flips true once the server tells us this visitor can't edit
+  var previewMode = true; // starts true until the fetch resolves
+  var topControls = document.querySelector('.top-controls');
+  if(topControls){ topControls.style.opacity = '0'; }
+
+  function applyEditPermission(canEdit){
+    CAN_EDIT = canEdit;
+    GIFT_MODE = !canEdit;
+    previewMode = !canEdit;
+    document.body.classList.toggle('gift-mode', GIFT_MODE);
+    if(previewToggle){
+      previewToggle.classList.toggle('is-preview', GIFT_MODE);
+      previewToggle.setAttribute('aria-pressed', GIFT_MODE ? 'true' : 'false');
+      previewToggleLabel.textContent = GIFT_MODE ? 'Exit Preview' : 'Preview';
+    }
+    if(topControls){ topControls.style.opacity = '1'; }
+  }
+
+  var pendingSaveTimers = {};
+
+  function saveArtworkFields(id, fields){
+    return fetch('/api/museums/' + MUSEUM_ID, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: EDIT_TOKEN, artworks: [Object.assign({ id: id }, fields)] })
+    }).then(function(r){ return r.json(); }).catch(function(){});
+  }
+
+  function flushArtwork(id){
+    if(pendingSaveTimers[id]){ clearTimeout(pendingSaveTimers[id]); delete pendingSaveTimers[id]; }
+    var a = getArtwork(id);
+    if(!a || !a._pendingFields) return Promise.resolve();
+    var fields = a._pendingFields;
+    a._pendingFields = null;
+    return saveArtworkFields(id, fields);
+  }
+
+  function scheduleSave(id, fields){
+    if(!CAN_EDIT) return;
+    var a = getArtwork(id);
+    if(!a) return;
+    a._pendingFields = Object.assign(a._pendingFields || {}, fields);
+    if(pendingSaveTimers[id]){ clearTimeout(pendingSaveTimers[id]); }
+    pendingSaveTimers[id] = setTimeout(function(){ flushArtwork(id); }, 900);
+  }
+
+  function flushPendingSaves(){
+    return Promise.all(artworks.map(function(a){ return flushArtwork(a.id); }));
+  }
+
+  function applyMuseumData(data){
+    document.title = (data && data.title) || 'Museum of Us';
+    artworks = ((data && data.artworks) || []).slice().sort(function(x, y){
+      return (x.order || 0) - (y.order || 0);
+    }).map(function(a){
+      return {
+        id: a.id,
+        frame: a.frame,
+        x: a.x, y: a.y, w: a.w, r: a.r,
+        side: a.side || null,
+        title: a.title || '',
+        medium: a.medium || 'Photograph',
+        year: a.year || '2026',
+        note: a.note || '',
+        img: a.imageUrl || null,
+        imgFit: a.imgFit || null
+      };
+    });
+    applyEditPermission(!!(data && data.canEdit));
+    closeViewing();
+    buildGallery();
+  }
+
+  function showLoadError(message){
+    gallery.innerHTML = '<p style="color:var(--paper);font-family:\'Work Sans\',sans-serif;text-align:center;padding:120px 20px;opacity:.85;">' + message + '</p>';
+  }
+
+  function relayoutActiveBigPhoto(){
+    if(activeBigPhoto){ layoutPhoto(activeBigPhoto.slot, activeBigPhoto.photo, activeBigPhoto.fit); }
+  }
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', relayoutActiveBigPhoto);
+  }
+  window.addEventListener('orientationchange', function(){
+    setTimeout(relayoutActiveBigPhoto, 50);
+    setTimeout(relayoutActiveBigPhoto, 300);
+  });
+
+  function getArtwork(id){
+    for(var i=0;i<artworks.length;i++){ if(artworks[i].id===id) return artworks[i]; }
+    return null;
+  }
+
+  function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+  function isMobileViewport(){
+    return window.matchMedia && window.matchMedia('(max-width:760px)').matches;
+  }
+
+  function getImgFit(a){
+    if(!a.imgFit){ a.imgFit = {zoom:1, ox:0, oy:0}; }
+    return a.imgFit;
+  }
+
+  function layoutPhoto(slot, img, fit){
+    var natW = img.naturalWidth, natH = img.naturalHeight;
+    if(!natW || !natH) return;
+    var rect = slot.getBoundingClientRect();
+    var Sw = rect.width, Sh = rect.height;
+    if(Sw <= 0 || Sh <= 0) return;
+    var coverScale = Math.max(Sw/natW, Sh/natH);
+    var zoom = (fit && fit.zoom) || 1;
+    var dispW = natW * coverScale * zoom;
+    var dispH = natH * coverScale * zoom;
+    var maxOffX = Math.max(0, (dispW - Sw) / 2);
+    var maxOffY = Math.max(0, (dispH - Sh) / 2);
+    var ox = (fit && typeof fit.ox === 'number') ? fit.ox : 0;
+    var oy = (fit && typeof fit.oy === 'number') ? fit.oy : 0;
+    var left = (Sw - dispW) / 2 + ox * maxOffX;
+    var top = (Sh - dispH) / 2 + oy * maxOffY;
+    img.style.width = dispW + 'px';
+    img.style.height = dispH + 'px';
+    img.style.left = left + 'px';
+    img.style.top = top + 'px';
+    img._maxOffX = maxOffX;
+    img._maxOffY = maxOffY;
+  }
+
+  function enableDrag(slot, img, artwork, onInteract){
+    var ZOOM_MIN = 1, ZOOM_MAX = 3;
+    var pointers = {};
+    var dragging = false, startX = 0, startY = 0, startOx = 0, startOy = 0;
+    var pinching = false, pinchStartDist = 0, pinchStartZoom = 1;
+    var interacted = false;
+
+    function dist(p1, p2){
+      var dx = p1.x - p2.x, dy = p1.y - p2.y;
+      return Math.sqrt(dx*dx + dy*dy);
+    }
+    function activePoints(){
+      return Object.keys(pointers).map(function(id){ return pointers[id]; });
+    }
+    function syncRange(fit){
+      if(slot._zoomRange){ slot._zoomRange.value = fit.zoom; }
+    }
+
+    slot.addEventListener('pointerdown', function(e){
+      if(!artwork.img) return;
+      pointers[e.pointerId] = {x:e.clientX, y:e.clientY};
+      try{ slot.setPointerCapture(e.pointerId); }catch(err){}
+      var pts = activePoints();
+      if(pts.length === 1){
+        dragging = true;
+        interacted = true;
+        slot.classList.add('dragging');
+        startX = e.clientX; startY = e.clientY;
+        var fit = getImgFit(artwork);
+        startOx = fit.ox; startOy = fit.oy;
+      } else if(pts.length === 2 && isMobileViewport()){
+        dragging = false;
+        slot.classList.remove('dragging');
+        pinching = true;
+        interacted = true;
+        pinchStartDist = dist(pts[0], pts[1]);
+        pinchStartZoom = getImgFit(artwork).zoom || 1;
+      }
+      if(onInteract) onInteract();
+      e.preventDefault();
+    });
+
+    slot.addEventListener('pointermove', function(e){
+      if(!(e.pointerId in pointers)) return;
+      pointers[e.pointerId] = {x:e.clientX, y:e.clientY};
+      var pts = activePoints();
+      var fit = getImgFit(artwork);
+
+      if(pinching && pts.length >= 2){
+        var d = dist(pts[0], pts[1]);
+        if(pinchStartDist > 0){
+          fit.zoom = clamp(pinchStartZoom * (d / pinchStartDist), ZOOM_MIN, ZOOM_MAX);
+          layoutPhoto(slot, img, fit);
+          syncRange(fit);
+        }
+        return;
+      }
+      if(!dragging) return;
+      var maxOffX = img._maxOffX || 0;
+      var maxOffY = img._maxOffY || 0;
+      var dx = e.clientX - startX;
+      var dy = e.clientY - startY;
+      fit.ox = maxOffX > 0 ? clamp(startOx + dx / maxOffX, -1, 1) : 0;
+      fit.oy = maxOffY > 0 ? clamp(startOy + dy / maxOffY, -1, 1) : 0;
+      layoutPhoto(slot, img, fit);
+    });
+
+    function endPointer(e){
+      delete pointers[e.pointerId];
+      var pts = activePoints();
+      if(pts.length < 2){ pinching = false; pinchStartDist = 0; }
+      if(pts.length === 0){
+        dragging = false;
+        slot.classList.remove('dragging');
+        if(interacted && currentId != null){
+          refreshThumb(currentId);
+          scheduleSave(currentId, {img_fit: getImgFit(artwork)});
+        }
+        interacted = false;
+      }
+    }
+    slot.addEventListener('pointerup', endPointer);
+    slot.addEventListener('pointercancel', endPointer);
+  }
+
+  function buildZoomRail(artwork, slot, photo, fit, onInteract){
+    var rail = document.createElement('div');
+    rail.className = 'zoom-rail';
+    var ZOOM_MIN = 1, ZOOM_MAX = 3, ZOOM_STEP = 0.15;
+
+    var range = document.createElement('input');
+    range.type = 'range';
+    range.min = String(ZOOM_MIN);
+    range.max = String(ZOOM_MAX);
+    range.step = '0.01';
+    range.value = String(fit.zoom || 1);
+    range.setAttribute('aria-label', 'Zoom photo');
+
+    function setZoom(z){
+      fit.zoom = clamp(z, ZOOM_MIN, ZOOM_MAX);
+      range.value = fit.zoom;
+      layoutPhoto(slot, photo, fit);
+      if(onInteract) onInteract();
+      if(currentId != null){ refreshThumb(currentId); scheduleSave(currentId, {img_fit: fit}); }
+    }
+
+    function makeZoomBtn(label, delta, pathD){
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'zoom-btn';
+      btn.title = label;
+      btn.setAttribute('aria-label', label);
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="'+pathD+'"/></svg>';
+      btn.addEventListener('click', function(){ setZoom(fit.zoom + delta); });
+      return btn;
+    }
+
+    var zoomInBtn = makeZoomBtn('Zoom in', ZOOM_STEP, 'M12 5v14M5 12h14');
+    var zoomOutBtn = makeZoomBtn('Zoom out', -ZOOM_STEP, 'M5 12h14');
+
+    range.addEventListener('input', function(){
+      fit.zoom = parseFloat(range.value) || 1;
+      layoutPhoto(slot, photo, fit);
+      if(onInteract) onInteract();
+    });
+    range.addEventListener('change', function(){
+      if(currentId != null){ refreshThumb(currentId); scheduleSave(currentId, {img_fit: fit}); }
+    });
+
+    rail.appendChild(zoomInBtn);
+    rail.appendChild(range);
+    rail.appendChild(zoomOutBtn);
+    rail.rangeEl = range;
+    return rail;
+  }
+
+  function buildFrameHint(){
+    var hint = document.createElement('div');
+    hint.className = 'frame-hint';
+    var desktopText = document.createElement('span');
+    desktopText.className = 'hint-desktop';
+    desktopText.textContent = 'Drag to reposition, use slider to zoom';
+    var mobileText = document.createElement('span');
+    mobileText.className = 'hint-mobile';
+    mobileText.textContent = 'Drag to reposition, pinch to zoom';
+    hint.appendChild(desktopText);
+    hint.appendChild(mobileText);
+    return hint;
+  }
+
+  function buildFrameVisual(artwork, variant){
+    var def = FRAME_DEFS[artwork.frame];
+    var prefix = (variant === 'big') ? 'bigframe_' : 'frame_';
+    var wrap = document.createElement('div');
+    wrap.className = 'frame-visual';
+    var usesPreciseBorder = !!(artwork.img && def.bigInset);
+    var effectiveAr = (usesPreciseBorder && def.borderAr) ? def.borderAr : def.ar;
+    wrap.style.setProperty('--ar', effectiveAr);
+    var arParts = String(effectiveAr).split('/');
+    var arNum = arParts.length === 2 ? (parseFloat(arParts[0]) / parseFloat(arParts[1])) : parseFloat(effectiveAr);
+    if(!isFinite(arNum) || arNum <= 0){ arNum = 1; }
+    wrap.style.setProperty('--ar-num', arNum);
+
+    if(artwork.img){
+      var useInset = def.bigInset || def.inset;
+      var slot = document.createElement('div');
+      slot.className = 'photo-slot';
+      slot.style.left = (useInset[0]*100) + '%';
+      slot.style.top = (useInset[1]*100) + '%';
+      slot.style.right = (useInset[2]*100) + '%';
+      slot.style.bottom = (useInset[3]*100) + '%';
+      var photo = document.createElement('img');
+      photo.alt = artwork.title || 'Untitled photograph';
+      photo.draggable = false;
+      slot.appendChild(photo);
+      wrap.appendChild(slot);
+
+      var fit = getImgFit(artwork);
+      var doLayout = function(){
+        layoutPhoto(slot, photo, fit);
+        if(window.requestAnimationFrame){ requestAnimationFrame(function(){ layoutPhoto(slot, photo, fit); }); }
+      };
+      photo.addEventListener('load', doLayout);
+      photo.src = artwork.img;
+      if(photo.complete && photo.naturalWidth){ doLayout(); }
+      if(window.ResizeObserver){
+        new ResizeObserver(doLayout).observe(slot);
+      } else {
+        window.addEventListener('resize', doLayout);
+      }
+
+      if(variant === 'big'){
+        if(!previewMode){
+          slot.classList.add('draggable');
+          var hint = buildFrameHint();
+          var dismissHint = function(){ hint.classList.add('is-hidden'); };
+          var rail = buildZoomRail(artwork, slot, photo, fit, dismissHint);
+          slot._zoomRange = rail.rangeEl;
+          enableDrag(slot, photo, artwork, dismissHint);
+          wrap.appendChild(rail);
+          wrap.appendChild(hint);
+        }
+        activeBigPhoto = {slot:slot, photo:photo, fit:fit};
+      }
+
+      var borderImg = document.createElement('img');
+      borderImg.className = 'frame-graphic';
+      borderImg.src = ASSET_URIS[(def.bigInset ? 'bigframe_' : prefix) + artwork.frame + '_border'];
+      borderImg.alt = '';
+      wrap.appendChild(borderImg);
+    } else {
+      var plain = document.createElement('img');
+      plain.className = 'frame-graphic';
+      plain.src = ASSET_URIS[prefix + artwork.frame];
+      plain.alt = artwork.title || 'Untitled artwork';
+      wrap.appendChild(plain);
+    }
+    return wrap;
+  }
+
+  function buildGallery(){
+    gallery.innerHTML = '';
+
+    artworks.forEach(function(a, i){
+      var art = document.createElement('div');
+      art.className = 'artwork';
+      art.style.setProperty('--i', i);
+      art.style.setProperty('--x', a.x + '%');
+      art.style.setProperty('--y', a.y + '%');
+      art.style.setProperty('--w', a.w + '%');
+
+      var btn = document.createElement('button');
+      btn.className = 'frame-wrap';
+      btn.style.setProperty('--r', a.r + 'deg');
+      btn.setAttribute('aria-label', 'Open artwork ' + (i+1));
+      btn.appendChild(buildFrameVisual(a));
+
+      var label = document.createElement('img');
+      label.className = 'mini-label' + (a.side ? ' mini-label--' + a.side : '');
+      label.src = ASSET_URIS['label_' + (i+1)];
+      label.alt = '';
+      label.setAttribute('aria-hidden','true');
+
+      art.appendChild(btn);
+      art.appendChild(label);
+      gallery.appendChild(art);
+
+      btn.addEventListener('click', function(){ openViewing(a.id); });
+      btn.addEventListener('mouseenter', function(){
+        if(previewMode && !isMobileViewport()){ openViewing(a.id); }
+      });
+      btn.addEventListener('mouseleave', function(){
+        if(previewMode && !isMobileViewport()){ closeViewing(); }
+      });
+      btn.addEventListener('focus', function(){
+        if(previewMode && !isMobileViewport()){ openViewing(a.id); }
+      });
+      btn.addEventListener('blur', function(){
+        if(previewMode && !isMobileViewport()){ closeViewing(); }
+      });
+    });
+
+    spectators.forEach(function(s){
+      var el = document.createElement('div');
+      el.className = 'spectator';
+      el.style.left = s.left + '%';
+      el.style.height = s.height + '%';
+      el.setAttribute('aria-hidden','true');
+      var img = document.createElement('img');
+      img.src = ASSET_URIS[s.key];
+      img.alt = '';
+      el.appendChild(img);
+      gallery.appendChild(el);
+    });
+
+    buildChandelier();
+  }
+
+  function buildChandelier(){
+    var chandelier = document.createElement('div');
+    chandelier.className = 'chandelier';
+    chandelier.setAttribute('aria-hidden','true');
+    var img = document.createElement('img');
+    img.src = ASSET_URIS.chandelier;
+    img.alt = '';
+    img.draggable = false;
+    chandelier.appendChild(img);
+    gallery.appendChild(chandelier);
+
+    function swing(direction){
+      chandelier.classList.remove('swing-left','swing-right');
+      void chandelier.offsetWidth;
+      chandelier.classList.add(direction === 'left' ? 'swing-left' : 'swing-right');
+    }
+    chandelier.addEventListener('animationend', function(){
+      chandelier.classList.remove('swing-left','swing-right');
+    });
+    function interact(clientX){
+      var rect = chandelier.getBoundingClientRect();
+      var center = rect.left + rect.width / 2;
+      swing(clientX > center ? 'left' : 'right');
+    }
+    chandelier.addEventListener('mouseenter', function(e){ interact(e.clientX); });
+    chandelier.addEventListener('touchstart', function(e){
+      if(e.touches && e.touches[0]){ interact(e.touches[0].clientX); }
+    }, {passive:true});
+  }
+
+  function refreshThumb(id){
+    var idx = artworks.indexOf(getArtwork(id));
+    var btn = gallery.querySelectorAll('.frame-wrap')[idx];
+    if(btn){
+      btn.innerHTML = '';
+      btn.appendChild(buildFrameVisual(getArtwork(id)));
+    }
+  }
+
+  function fillPlaqueField(el, value){
+    el.textContent = value || '';
+  }
+
+  function openViewing(id){
+    currentId = id;
+    var a = getArtwork(id);
+    if(!a) return;
+
+    bigFrame.querySelectorAll('.frame-visual').forEach(function(n){ n.remove(); });
+    bigFrame.insertBefore(buildFrameVisual(a, 'big'), bigFrame.firstChild);
+
+    viewingRoom.classList.toggle('plaque-bottom', !a.side);
+    viewingRoom.classList.toggle('plaque-left', a.side === 'left');
+    viewingRoom.classList.toggle('preview', previewMode);
+
+    fillPlaqueField(plaqueTitle, a.title);
+    fillPlaqueField(plaqueMedium, a.medium);
+    fillPlaqueField(plaqueYear, a.year);
+    fillPlaqueField(plaqueNote, a.note);
+    lastValidTitle = plaqueTitle.textContent;
+    updateNoteCounter();
+
+    var editable = previewMode ? 'false' : 'true';
+    plaqueTitle.contentEditable = editable;
+    plaqueMedium.contentEditable = editable;
+    plaqueYear.contentEditable = editable;
+    plaqueNote.contentEditable = editable;
+
+    viewingRoom.classList.add('open');
+    viewingRoom.setAttribute('aria-hidden','false');
+  }
+
+  function closeViewing(){
+    if(currentId != null && CAN_EDIT){ flushArtwork(currentId); }
+    viewingRoom.classList.remove('open');
+    viewingRoom.setAttribute('aria-hidden','true');
+    currentId = null;
+    activeBigPhoto = null;
+  }
+
+  closeBtn.addEventListener('click', function(){ closeViewing(); });
+  viewingRoom.addEventListener('click', function(e){
+    if(e.target === viewingRoom){ closeViewing(); }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && viewingRoom.classList.contains('open')){ closeViewing(); }
+  });
+
+  var previewToggle = document.getElementById('previewToggle');
+  var previewToggleLabel = document.getElementById('previewToggleLabel');
+
+  function setPreviewMode(on){
+    previewMode = on;
+    closeViewing();
+    closeResetConfirm();
+    document.body.classList.toggle('preview-mode', on);
+    previewToggle.classList.toggle('is-preview', on);
+    previewToggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+    previewToggleLabel.textContent = on ? 'Exit Preview' : 'Preview';
+  }
+  previewToggle.addEventListener('click', function(){
+    if(GIFT_MODE) return;
+    setPreviewMode(!previewMode);
+  });
+
+  var musicToggle = document.getElementById('musicToggle');
+  var bgAudio = document.getElementById('bgAudio');
+  bgAudio.src = ASSET_URIS.soundtrack;
+
+  musicToggle.addEventListener('click', function(){
+    if(bgAudio.paused){ bgAudio.play().catch(function(){}); }
+    else { bgAudio.pause(); }
+  });
+  function updateMusicToggleUI(){
+    var playing = !bgAudio.paused;
+    musicToggle.classList.toggle('is-playing', playing);
+    musicToggle.setAttribute('aria-pressed', playing ? 'true' : 'false');
+    musicToggle.setAttribute('aria-label', playing ? 'Pause music' : 'Play music');
+  }
+  bgAudio.addEventListener('play', updateMusicToggleUI);
+  bgAudio.addEventListener('pause', updateMusicToggleUI);
+
+  var resetToggle = document.getElementById('resetToggle');
+  var resetOverlay = document.getElementById('resetOverlay');
+  var resetCancelBtn = document.getElementById('resetCancelBtn');
+  var resetConfirmBtn = document.getElementById('resetConfirmBtn');
+
+  function resetAllArtworks(){
+    if(!CAN_EDIT || !MUSEUM_ID) return;
+    closeViewing();
+    fetch('/api/museums/' + MUSEUM_ID + '?action=reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: EDIT_TOKEN })
+    })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(data && data.artworks){ applyMuseumData(data); }
+      })
+      .catch(function(){});
+  }
+
+  function openResetConfirm(){
+    resetOverlay.hidden = false;
+  }
+  function closeResetConfirm(){
+    resetOverlay.hidden = true;
+  }
+
+  resetToggle.addEventListener('click', function(){
+    if(previewMode || GIFT_MODE) return;
+    openResetConfirm();
+  });
+  resetCancelBtn.addEventListener('click', closeResetConfirm);
+  resetOverlay.addEventListener('click', function(e){
+    if(e.target === resetOverlay){ closeResetConfirm(); }
+  });
+  resetConfirmBtn.addEventListener('click', function(){
+    resetAllArtworks();
+    closeResetConfirm();
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && !resetOverlay.hidden){ closeResetConfirm(); }
+  });
+
+  var shareToggle = document.getElementById('shareToggle');
+  var shareOverlay = document.getElementById('shareOverlay');
+  var shareCancelBtn = document.getElementById('shareCancelBtn');
+  var shareGoBtn = document.getElementById('shareGoBtn');
+  var shareCopyBtn = document.getElementById('shareCopyBtn');
+  var shareLinkInput = document.getElementById('shareLinkInput');
+  var shareDoneCloseBtn = document.getElementById('shareDoneCloseBtn');
+  var shareSavingCancelBtn = document.getElementById('shareSavingCancelBtn');
+  var shareErrorCloseBtn = document.getElementById('shareErrorCloseBtn');
+  var shareErrorMessage = document.getElementById('shareErrorMessage');
+  var shareStepConfirm = document.getElementById('shareStepConfirm');
+  var shareStepSaving = document.getElementById('shareStepSaving');
+  var shareStepDone = document.getElementById('shareStepDone');
+  var shareStepError = document.getElementById('shareStepError');
+  var shareSavingCaption = document.getElementById('shareSavingCaption');
+  var SHARE_LOADING_CAPTIONS = [
+    'Dusting frames\u2026',
+    'Approving artists\u2026',
+    'Hanging the collection\u2026',
+    'Polishing the plaques\u2026',
+    'Adjusting the lighting\u2026',
+    'Spellchecking title cards\u2026'
+  ];
+  var shareCaptionTimer = null;
+  var shareCaptionIndex = 0;
+  function startShareCaptionCycle(){
+    shareCaptionIndex = 0;
+    if(shareSavingCaption){ shareSavingCaption.textContent = SHARE_LOADING_CAPTIONS[0]; }
+    if(shareCaptionTimer){ clearInterval(shareCaptionTimer); }
+    shareCaptionTimer = setInterval(function(){
+      shareCaptionIndex = (shareCaptionIndex + 1) % SHARE_LOADING_CAPTIONS.length;
+      if(shareSavingCaption){ shareSavingCaption.textContent = SHARE_LOADING_CAPTIONS[shareCaptionIndex]; }
+    }, 1700);
+  }
+  function stopShareCaptionCycle(){
+    if(shareCaptionTimer){
+      clearInterval(shareCaptionTimer);
+      shareCaptionTimer = null;
+    }
+  }
+
+  function showShareStep(step){
+    shareStepConfirm.hidden = step !== 'confirm';
+    shareStepSaving.hidden = step !== 'saving';
+    shareStepDone.hidden = step !== 'done';
+    shareStepError.hidden = step !== 'error';
+    if(step === 'saving'){
+      startShareCaptionCycle();
+    } else {
+      stopShareCaptionCycle();
+    }
+  }
+  function openShareOverlay(){
+    shareOverlay.hidden = false;
+  }
+  function closeShareOverlay(){
+    shareOverlay.hidden = true;
+  }
+  function giftLinkUrl(){
+    var url = new URL(window.location.href);
+    url.search = '';
+    url.hash = '';
+    url.searchParams.set('id', MUSEUM_ID);
+    return url.toString();
+  }
+
+  shareToggle.addEventListener('click', function(){
+    if(GIFT_MODE) return;
+    showShareStep('confirm');
+    openShareOverlay();
+  });
+  shareCancelBtn.addEventListener('click', closeShareOverlay);
+  shareSavingCancelBtn.addEventListener('click', function(){
+    stopShareCaptionCycle();
+    shareGoBtn.disabled = false;
+    closeShareOverlay();
+  });
+  shareDoneCloseBtn.addEventListener('click', closeShareOverlay);
+  shareErrorCloseBtn.addEventListener('click', closeShareOverlay);
+  shareOverlay.addEventListener('click', function(e){
+    if(e.target === shareOverlay){ closeShareOverlay(); }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && !shareOverlay.hidden){ closeShareOverlay(); }
+  });
+
+  shareCopyBtn.addEventListener('click', function(){
+    shareLinkInput.select();
+    shareLinkInput.setSelectionRange(0, shareLinkInput.value.length);
+    var announceCopied = function(){
+      shareCopyBtn.textContent = 'Copied';
+      shareCopyBtn.classList.add('copied');
+      setTimeout(function(){
+        shareCopyBtn.textContent = 'Copy';
+        shareCopyBtn.classList.remove('copied');
+      }, 1800);
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(shareLinkInput.value).then(announceCopied, function(){
+        try{ document.execCommand('copy'); announceCopied(); }catch(err){}
+      });
+    } else {
+      try{ document.execCommand('copy'); announceCopied(); }catch(err){}
+    }
+  });
+
+  shareGoBtn.addEventListener('click', function(){
+    if(!CAN_EDIT || !MUSEUM_ID) return;
+    shareGoBtn.disabled = true;
+    showShareStep('saving');
+    flushPendingSaves().then(function(){
+      shareLinkInput.value = giftLinkUrl();
+      showShareStep('done');
+      shareGoBtn.disabled = false;
+    }).catch(function(){
+      showShareStep('error');
+      shareErrorMessage.textContent = 'Something went wrong saving your gift. Please try again.';
+      shareGoBtn.disabled = false;
+    });
+  });
+
+  function normalizeEmpty(el){
+    if(el.textContent.replace(/​/g,'').trim() === ''){ el.innerHTML = ''; }
+  }
+
+  function updateNoteCounter(){
+    var len = plaqueNote.textContent.length;
+    noteCounter.textContent = len + ' / ' + NOTE_SOFT_LIMIT;
+    noteCounter.classList.toggle('is-over', len > NOTE_SOFT_LIMIT);
+  }
+
+  function placeCaretAtEnd(el){
+    var range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  function sanitizedPaste(el, singleLine){
+    el.addEventListener('paste', function(e){
+      e.preventDefault();
+      var text = (e.clipboardData || window.clipboardData).getData('text');
+      if(singleLine){ text = text.replace(/[\r\n]+/g,' '); }
+      document.execCommand('insertText', false, text);
+    });
+  }
+  sanitizedPaste(plaqueTitle, true);
+  sanitizedPaste(plaqueMedium, true);
+  sanitizedPaste(plaqueYear, true);
+  sanitizedPaste(plaqueNote, false);
+
+  plaqueTitle.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); }
+  });
+  plaqueTitle.addEventListener('blur', function(){
+    plaqueTitle.scrollLeft = 0;
+  });
+  plaqueTitle.addEventListener('input', function(){
+    if(currentId==null) return;
+    normalizeEmpty(plaqueTitle);
+    if(plaqueTitle.scrollWidth > plaqueTitle.clientWidth + 1){
+      plaqueTitle.textContent = lastValidTitle;
+      placeCaretAtEnd(plaqueTitle);
+      plaqueTitle.scrollLeft = 0;
+    } else {
+      lastValidTitle = plaqueTitle.textContent;
+    }
+    getArtwork(currentId).title = plaqueTitle.textContent;
+    scheduleSave(currentId, {title: plaqueTitle.textContent});
+  });
+  plaqueMedium.addEventListener('input', function(){
+    if(currentId==null) return;
+    normalizeEmpty(plaqueMedium);
+    getArtwork(currentId).medium = plaqueMedium.textContent;
+    scheduleSave(currentId, {medium: plaqueMedium.textContent});
+  });
+  plaqueYear.addEventListener('input', function(){
+    if(currentId==null) return;
+    normalizeEmpty(plaqueYear);
+    getArtwork(currentId).year = plaqueYear.textContent;
+    scheduleSave(currentId, {year: plaqueYear.textContent});
+  });
+  plaqueNote.addEventListener('input', function(){
+    if(currentId==null) return;
+    normalizeEmpty(plaqueNote);
+    getArtwork(currentId).note = plaqueNote.textContent;
+    updateNoteCounter();
+    scheduleSave(currentId, {note: plaqueNote.textContent});
+  });
+
+  var PHOTO_MAX_DIM = 1400;
+  var PHOTO_TARGET_BYTES = 170 * 1024;
+  var PHOTO_QUALITY_STEPS = [0.82, 0.72, 0.62, 0.52, 0.42, 0.32];
+
+  function compressImageFile(file, cb){
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      var img = new Image();
+      img.onload = function(){
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if(!w || !h){ cb(ev.target.result); return; }
+        var scale = Math.min(1, PHOTO_MAX_DIM / Math.max(w, h));
+        var cw = Math.max(1, Math.round(w * scale));
+        var ch = Math.max(1, Math.round(h * scale));
+        var canvas = document.createElement('canvas');
+        canvas.width = cw;
+        canvas.height = ch;
+        var ctx = canvas.getContext('2d');
+        if(!ctx){ cb(ev.target.result); return; }
+        ctx.drawImage(img, 0, 0, cw, ch);
+        var best = null;
+        for(var i=0;i<PHOTO_QUALITY_STEPS.length;i++){
+          var dataUrl;
+          try{ dataUrl = canvas.toDataURL('image/jpeg', PHOTO_QUALITY_STEPS[i]); }
+          catch(err){ cb(ev.target.result); return; }
+          best = dataUrl;
+          var b64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
+          if(b64.length * 0.75 <= PHOTO_TARGET_BYTES){ break; }
+        }
+        cb(best || ev.target.result);
+      };
+      img.onerror = function(){ cb(ev.target.result); };
+      img.src = ev.target.result;
+    };
+    reader.onerror = function(){ cb(null); };
+    reader.readAsDataURL(file);
+  }
+
+  var swapPhotoLabel = document.getElementById('swapPhotoLabel');
+
+  function uploadPhoto(id, dataUrl){
+    if(swapPhotoLabel){ swapPhotoLabel.textContent = 'Uploading\u2026'; }
+    bigFileInput.disabled = true;
+    fetch('/api/museums/' + MUSEUM_ID + '/photo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: EDIT_TOKEN, artworkId: id, dataUrl: dataUrl })
+    })
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        bigFileInput.disabled = false;
+        if(!res || !res.imageUrl){
+          if(swapPhotoLabel){
+            swapPhotoLabel.textContent = 'Upload failed, try again';
+            setTimeout(function(){ swapPhotoLabel.textContent = 'Change photo'; }, 2200);
+          }
+          return;
+        }
+        var a = getArtwork(id);
+        if(!a) return;
+        a.img = res.imageUrl;
+        a.imgFit = {zoom:1, ox:0, oy:0};
+        if(swapPhotoLabel){ swapPhotoLabel.textContent = 'Change photo'; }
+        if(currentId === id){ openViewing(id); }
+        refreshThumb(id);
+      })
+      .catch(function(){
+        bigFileInput.disabled = false;
+        if(swapPhotoLabel){
+          swapPhotoLabel.textContent = 'Upload failed, try again';
+          setTimeout(function(){ swapPhotoLabel.textContent = 'Change photo'; }, 2200);
+        }
+      });
+  }
+
+  bigFileInput.addEventListener('change', function(e){
+    if(currentId==null || !CAN_EDIT) return;
+    var file = e.target.files && e.target.files[0];
+    if(!file) return;
+    var openedFor = currentId;
+    compressImageFile(file, function(dataUrl){
+      if(!dataUrl) return;
+      uploadPhoto(openedFor, dataUrl);
+    });
+  });
+
+  function centerGallery(){
+    var scrollEl = document.querySelector('.gallery-scroll');
+    if(!scrollEl) return;
+    var maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
+    if(maxScroll > 0){
+      scrollEl.scrollLeft = maxScroll / 2;
+    }
+  }
+  window.addEventListener('load', centerGallery);
+  window.addEventListener('resize', centerGallery);
+  window.addEventListener('orientationchange', centerGallery);
+
+  if(!MUSEUM_ID){
+    showLoadError("No museum to open here. Start a new one from the homepage.");
+  } else {
+    showLoadError('Loading your museum\u2026');
+    fetch('/api/museums/' + MUSEUM_ID + (EDIT_TOKEN ? ('?token=' + encodeURIComponent(EDIT_TOKEN)) : ''))
+      .then(function(r){
+        if(r.status === 404){ throw new Error('not_found'); }
+        return r.json();
+      })
+      .then(function(data){
+        applyMuseumData(data);
+        centerGallery();
+      })
+      .catch(function(){
+        showLoadError("This museum couldn't be found. Double-check the link.");
+      });
+  }
+})();
+</script>
+</body>
+</html>

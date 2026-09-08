@@ -5,65 +5,101 @@ const { chromium } = require('playwright');
   const page = await browser.newPage();
   const base = 'http://localhost:4173';
 
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') console.log('  [browser console error]', msg.text());
+  });
+
   await page.goto(base + '/');
   await page.click('#startBtn');
-  await page.waitForURL(/\/edit\.html\?/);
-  console.log('✓ redirected to edit page:', page.url());
+  await page.waitForURL(/\/museum\.html\?/);
+  console.log('redirected to museum page:', page.url());
 
-  await page.waitForSelector('.frame');
-  const frameCount = await page.locator('.frame').count();
+  await page.waitForSelector('.frame-wrap', { timeout: 5000 });
+  const frameCount = await page.locator('.frame-wrap').count();
   console.log('frame count (expect 9):', frameCount);
 
-  // Edit the first frame's title + note and save
-  const firstFrame = page.locator('.frame').first();
-  await firstFrame.locator('input[placeholder="Title"]').fill('Our First Date');
-  await firstFrame.locator('input[placeholder="Note"]').fill('The rooftop bar downtown');
-  await firstFrame.locator('button', { hasText: 'Save' }).click();
-  await page.waitForTimeout(300);
-  console.log('status after save:', await page.textContent('#status'));
+  const topControlsOpacity = await page.locator('.top-controls').evaluate((el) => getComputedStyle(el).opacity);
+  console.log('top controls visible after load (expect 1):', topControlsOpacity);
 
-  // Upload a tiny generated image into the first frame
+  // Open the first frame and edit its plaque
+  await page.locator('.frame-wrap').first().click();
+  await page.waitForSelector('.viewing-room.open');
+  await page.click('#plaqueTitle');
+  await page.keyboard.type('Our First Date');
+  await page.click('#plaqueNote');
+  await page.keyboard.type('The rooftop bar downtown');
+  // give the debounced save (900ms) time to fire
+  await page.waitForTimeout(1300);
+
+  // Upload a tiny generated image into that frame
+  const fs = require('fs');
   const tinyPngBuffer = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
     'base64'
   );
-  const fs = require('fs');
   const tmpPath = '/tmp/test-photo.png';
   fs.writeFileSync(tmpPath, tinyPngBuffer);
-  await firstFrame.locator('input[type=file]').setInputFiles(tmpPath);
+  await page.setInputFiles('#bigFileInput', tmpPath);
   await page.waitForTimeout(600);
-  console.log('status after upload:', await page.textContent('#status'));
-  const hasImg = await firstFrame.locator('img').count();
-  console.log('frame now shows an <img> (expect 1):', hasImg);
+  const bigImgSrc = await page.locator('.big-frame .photo-slot img').getAttribute('src');
+  console.log('uploaded photo src (expect fake.supabase.co URL):', bigImgSrc);
 
-  // Get gift link
-  await page.click('#shareBtn');
-  const giftUrl = await page.textContent('#linkOut');
-  console.log('gift link:', giftUrl);
+  await page.click('#closeViewing');
+  await page.waitForTimeout(200);
 
-  // Visit the gift link and confirm it shows what we just entered
-  await page.goto(giftUrl.trim());
-  await page.waitForTimeout(300);
-  const giftFrameCount = await page.locator('.frame').count();
-  console.log('gift page frame count (expect 1, blanks are hidden):', giftFrameCount);
-  const giftTitle = await page.locator('.frame h3').first().textContent();
-  console.log('gift page shows title:', giftTitle);
+  const museumUrl = new URL(page.url());
+  const museumId = museumUrl.searchParams.get('id');
+  const editToken = museumUrl.searchParams.get('token');
 
-  // Now go back to edit and test reset
-  const url = new URL(page.url());
-  const museumId = new URL(giftUrl.trim()).searchParams.get('id');
-  await page.goto(base + '/'); // dummy nav away, then read edit token from localStorage we saved
-  const editToken = await page.evaluate((id) => {
-    const saved = JSON.parse(localStorage.getItem('museumEditTokens') || '{}');
-    return saved[id];
-  }, museumId);
-  await page.goto(base + '/edit.html?id=' + museumId + '&token=' + editToken);
-  await page.waitForSelector('.frame');
-  page.once('dialog', (d) => d.accept());
-  await page.click('#resetBtn');
-  await page.waitForTimeout(300);
-  const firstTitleAfterReset = await page.locator('.frame').first().locator('input[placeholder="Title"]').inputValue();
-  console.log('title after reset (expect empty):', JSON.stringify(firstTitleAfterReset));
+  // Reload fresh (same edit URL) to prove the title/note/photo really saved server-side,
+  // not just in local memory.
+  await page.reload();
+  await page.waitForSelector('.frame-wrap', { timeout: 5000 });
+  await page.locator('.frame-wrap').first().click();
+  await page.waitForSelector('.viewing-room.open');
+  const titleAfterReload = await page.locator('#plaqueTitle').textContent();
+  const noteAfterReload = await page.locator('#plaqueNote').textContent();
+  const imgAfterReload = await page.locator('.big-frame .photo-slot img').count();
+  console.log('title survived reload (expect "Our First Date"):', JSON.stringify(titleAfterReload));
+  console.log('note survived reload (expect "The rooftop bar downtown"):', JSON.stringify(noteAfterReload));
+  console.log('photo survived reload (expect 1):', imgAfterReload);
+  await page.click('#closeViewing');
+
+  // Share flow: get the gift link
+  await page.click('#shareToggle');
+  await page.waitForSelector('#shareOverlay:not([hidden])');
+  await page.click('#shareGoBtn');
+  await page.waitForSelector('#shareStepDone:not([hidden])', { timeout: 5000 });
+  const giftUrl = await page.inputValue('#shareLinkInput');
+  console.log('gift link (expect no token param):', giftUrl);
+  await page.click('#shareDoneCloseBtn');
+  await page.waitForTimeout(150);
+
+  // Visit the gift link as a fresh, separate visitor (no token)
+  const giftPage = await browser.newPage();
+  await giftPage.goto(giftUrl);
+  await giftPage.waitForSelector('.frame-wrap', { timeout: 5000 });
+  const giftTopControlsDisplay = await giftPage.locator('.reset-toggle').evaluate((el) => getComputedStyle(el).display);
+  console.log('reset button hidden on gift link (expect none):', giftTopControlsDisplay);
+  await giftPage.locator('.frame-wrap').first().click();
+  await giftPage.waitForSelector('.viewing-room.open');
+  const giftTitle = await giftPage.locator('#plaqueTitle').textContent();
+  const giftEditable = await giftPage.locator('#plaqueTitle').getAttribute('contenteditable');
+  console.log('gift viewer sees title (expect "Our First Date"):', JSON.stringify(giftTitle));
+  console.log('gift viewer plaque editable (expect false):', giftEditable);
+  await giftPage.close();
+
+  // Back on the edit page: reset everything
+  await page.click('#resetToggle');
+  await page.waitForSelector('#resetOverlay:not([hidden])');
+  await page.click('#resetConfirmBtn');
+  await page.waitForTimeout(500);
+  await page.locator('.frame-wrap').first().click();
+  await page.waitForSelector('.viewing-room.open');
+  const titleAfterReset = await page.locator('#plaqueTitle').textContent();
+  const imgAfterReset = await page.locator('.big-frame .photo-slot img').count();
+  console.log('title after reset (expect empty):', JSON.stringify(titleAfterReset));
+  console.log('photo after reset (expect 0):', imgAfterReset);
 
   await browser.close();
   console.log('\nEnd-to-end run complete.');

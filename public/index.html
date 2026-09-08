@@ -42,7 +42,7 @@
             saved[data.id] = data.editToken;
             localStorage.setItem('museumEditTokens', JSON.stringify(saved));
           } catch (e) {}
-          window.location.href = '/edit.html?id=' + encodeURIComponent(data.id) + '&token=' + encodeURIComponent(data.editToken);
+          window.location.href = '/museum.html?id=' + encodeURIComponent(data.id) + '&token=' + encodeURIComponent(data.editToken);
         })
         .catch(function () {
           statusEl.textContent = "Something went wrong, please try again.";
