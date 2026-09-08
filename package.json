@@ -1,0 +1,12 @@
+{
+  "name": "museum-of-us",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Museum of Us — an interactive museum-simulator ecard, multi-user backend.",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4"
+  }
+}
