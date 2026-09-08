@@ -8,47 +8,63 @@
   body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
     background:#3a1712;color:#f6efdf;font-family:'Work Sans',system-ui,sans-serif;text-align:center;}
   .card{max-width:420px;padding:40px;}
-  h1{font-family:'Playfair Display',Georgia,serif;font-size:32px;margin:0 0 12px;}
-  p{color:#cdbfa5;line-height:1.5;margin:0 0 28px;}
-  button{font-family:inherit;font-size:15px;font-weight:600;padding:14px 28px;border-radius:24px;
-    border:1px solid #eecf8e;background:#eecf8e;color:#170c08;cursor:pointer;}
-  button:hover{background:#fff;border-color:#fff;}
-  button:disabled{opacity:.6;cursor:default;}
-  #status{margin-top:16px;color:#cdbfa5;font-size:13px;min-height:18px;}
+  p{color:#cdbfa5;line-height:1.5;margin:0;}
 </style>
 </head>
 <body>
   <div class="card">
-    <h1>Museum of Us</h1>
-    <p>An interactive little museum you curate with your own photos and memories, then gift to someone as a link.</p>
-    <button id="startBtn" type="button">Start your museum</button>
-    <div id="status"></div>
+    <p id="status">Opening your museum&hellip;</p>
   </div>
   <script>
-    var startBtn = document.getElementById('startBtn');
     var statusEl = document.getElementById('status');
 
-    startBtn.addEventListener('click', function () {
-      startBtn.disabled = true;
-      statusEl.textContent = 'Setting up your museum…';
+    function goToMuseum(id, token){
+      window.location.replace('/museum.html?id=' + encodeURIComponent(id) + '&token=' + encodeURIComponent(token));
+    }
+
+    // A returning visitor (this browser already made a museum before) goes
+    // straight back to it instead of getting a brand new blank one.
+    function readLastMuseum(){
+      try {
+        var last = JSON.parse(localStorage.getItem('lastMuseum') || 'null');
+        if(last && last.id && last.token) return last;
+      } catch(e) {}
+      // Fall back to the older multi-museum map, for browsers that used the
+      // previous "Start your museum" button before this page auto-redirected.
+      try {
+        var saved = JSON.parse(localStorage.getItem('museumEditTokens') || '{}');
+        var ids = Object.keys(saved);
+        if(ids.length){ return { id: ids[0], token: saved[ids[0]] }; }
+      } catch(e) {}
+      return null;
+    }
+
+    function rememberMuseum(id, token){
+      try {
+        localStorage.setItem('lastMuseum', JSON.stringify({ id: id, token: token }));
+        var saved = JSON.parse(localStorage.getItem('museumEditTokens') || '{}');
+        saved[id] = token;
+        localStorage.setItem('museumEditTokens', JSON.stringify(saved));
+      } catch(e) {}
+    }
+
+    var existing = readLastMuseum();
+    if(existing){
+      goToMuseum(existing.id, existing.token);
+    } else {
       fetch('/api/museums', { method: 'POST' })
         .then(function (r) {
           if (!r.ok) throw new Error('create_failed');
           return r.json();
         })
         .then(function (data) {
-          try {
-            var saved = JSON.parse(localStorage.getItem('museumEditTokens') || '{}');
-            saved[data.id] = data.editToken;
-            localStorage.setItem('museumEditTokens', JSON.stringify(saved));
-          } catch (e) {}
-          window.location.href = '/museum.html?id=' + encodeURIComponent(data.id) + '&token=' + encodeURIComponent(data.editToken);
+          rememberMuseum(data.id, data.editToken);
+          goToMuseum(data.id, data.editToken);
         })
         .catch(function () {
-          statusEl.textContent = "Something went wrong, please try again.";
-          startBtn.disabled = false;
+          statusEl.textContent = 'Something went wrong, please refresh to try again.';
         });
-    });
+    }
   </script>
 </body>
 </html>
