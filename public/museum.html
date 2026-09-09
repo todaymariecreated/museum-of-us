@@ -46,9 +46,8 @@
   }
 
   .gallery-scroll{
-    width:100%;
-    height:100vh;
-    height:100dvh;
+    position:fixed;
+    inset:0;
     overflow:hidden;
   }
   .gallery-scene{
@@ -70,9 +69,15 @@
     .gallery-scene{
       width:calc(100vh * 1728 / 1117);
       width:calc(100dvh * 1728 / 1117);
-      height:100vh;
-      height:100dvh;
+      height:100%;
       background-size:100% 100%;
+      /* In landscape, the viewport can be wider than this height-driven
+         width, leaving a gap on the right since block layout sits it flush
+         left by default. margin:0 auto centers it in that case; it has no
+         visible effect when the scene is wider than the screen (the normal
+         portrait case), which keeps the existing horizontal-scroll-to-center
+         behavior from centerGallery() working exactly as before. */
+      margin:0 auto;
     }
   }
 
@@ -544,12 +549,22 @@
     width:auto;
   }
 
-  .swap-photo{
+  .photo-actions{
     position:absolute;
     left:50%;
     top:100%;
     margin-top:16px;
     transform:translateX(-50%);
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .viewing-room.plaque-bottom .photo-actions{
+    position:static;
+    margin-top:16px;
+    transform:none;
+  }
+  .swap-photo{
     display:inline-flex;
     align-items:center;
     gap:8px;
@@ -568,11 +583,23 @@
   .swap-photo:hover{background:rgba(0,0,0,.4); border-color:var(--gold);}
   .swap-photo svg{width:15px;height:15px;}
   .swap-photo input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;}
-  .viewing-room.plaque-bottom .swap-photo{
-    position:static;
-    margin-top:16px;
-    transform:none;
+  .rotate-photo{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:38px;
+    height:38px;
+    padding:0;
+    border:1px solid var(--gold-dim);
+    border-radius:2px;
+    background:rgba(0,0,0,.25);
+    color:var(--gold-bright);
+    cursor:pointer;
+    transition:background .2s ease, border-color .2s ease;
   }
+  .rotate-photo:hover{background:rgba(0,0,0,.4); border-color:var(--gold);}
+  .rotate-photo svg{width:15px;height:15px;}
+  .rotate-photo[hidden]{display:none;}
 
   .zoom-rail{
     position:absolute;
@@ -711,7 +738,7 @@
   }
   .note-counter.is-over{color:#b45309;}
 
-  .viewing-room.preview .swap-photo,
+  .viewing-room.preview .photo-actions,
   .viewing-room.preview .note-counter{visibility:hidden; pointer-events:none;}
   .viewing-room.preview .close-viewing{display:none;}
   .viewing-room.preview .plaque-title,
@@ -736,8 +763,8 @@
     .viewing-room.plaque-bottom .big-frame{height:auto; max-width:100%; width:100%; display:flex; flex-direction:column; align-items:center;}
     .big-frame .frame-visual,
     .viewing-room.plaque-bottom .big-frame .frame-visual{height:auto; width:min(100%, calc(52vh * var(--ar-num, 1)));}
-    .swap-photo,
-    .viewing-room.plaque-bottom .swap-photo{position:static; margin-top:16px; transform:none;}
+    .photo-actions,
+    .viewing-room.plaque-bottom .photo-actions{position:static; margin-top:16px; transform:none;}
     .zoom-rail{display:none;}
     .frame-hint .hint-desktop{display:none;}
     .frame-hint .hint-mobile{display:inline;}
@@ -831,11 +858,16 @@
     <button class="close-viewing" id="closeViewing" aria-label="Close">&times;</button>
 
     <div class="big-frame" id="bigFrame">
-      <label class="swap-photo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="1.5"/><circle cx="9" cy="11" r="2"/><path d="M21 16l-5-4-4 3-3-2-6 5"/></svg>
-        <span id="swapPhotoLabel">Change photo</span>
-        <input type="file" accept="image/*" id="bigFileInput">
-      </label>
+      <div class="photo-actions">
+        <label class="swap-photo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="1.5"/><circle cx="9" cy="11" r="2"/><path d="M21 16l-5-4-4 3-3-2-6 5"/></svg>
+          <span id="swapPhotoLabel">Change photo</span>
+          <input type="file" accept="image/*" id="bigFileInput">
+        </label>
+        <button type="button" class="rotate-photo" id="rotatePhotoBtn" aria-label="Rotate photo" title="Rotate photo" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        </button>
+      </div>
 
       <div class="wall-plaque">
         <h2 class="plaque-title" id="plaqueTitle" contenteditable="true" data-placeholder="Insert Artwork Title"></h2>
@@ -933,6 +965,7 @@
   var viewingRoom = document.getElementById('viewingRoom');
   var bigFrame = document.getElementById('bigFrame');
   var bigFileInput = document.getElementById('bigFileInput');
+  var rotatePhotoBtn = document.getElementById('rotatePhotoBtn');
   var plaqueTitle = document.getElementById('plaqueTitle');
   var plaqueMedium = document.getElementById('plaqueMedium');
   var plaqueYear = document.getElementById('plaqueYear');
@@ -1049,30 +1082,49 @@
   }
 
   function getImgFit(a){
-    if(!a.imgFit){ a.imgFit = {zoom:1, ox:0, oy:0}; }
+    if(!a.imgFit){ a.imgFit = {zoom:1, ox:0, oy:0, rot:0}; }
+    if(typeof a.imgFit.rot !== 'number'){ a.imgFit.rot = 0; }
     return a.imgFit;
   }
 
+  // "Cover"-fits the photo into the slot, same as before, but rotation-aware:
+  // rot is 0/90/180/270. At 90/270 the photo's effective width/height are
+  // swapped for the cover-scale math (a portrait photo rotated 90deg covers
+  // the slot like a landscape one would), and the <img> itself is sized and
+  // positioned in its own pre-rotation terms so that rotating it in place
+  // around its center lands its visible bounding box exactly on the
+  // intended (dispW x dispH) box, centered the same way the unrotated case
+  // always was.
   function layoutPhoto(slot, img, fit){
     var natW = img.naturalWidth, natH = img.naturalHeight;
     if(!natW || !natH) return;
     var rect = slot.getBoundingClientRect();
     var Sw = rect.width, Sh = rect.height;
     if(Sw <= 0 || Sh <= 0) return;
-    var coverScale = Math.max(Sw/natW, Sh/natH);
+    var rot = (fit && fit.rot) || 0;
+    var swapped = (rot === 90 || rot === 270);
+    var effNatW = swapped ? natH : natW;
+    var effNatH = swapped ? natW : natH;
+    var coverScale = Math.max(Sw/effNatW, Sh/effNatH);
     var zoom = (fit && fit.zoom) || 1;
-    var dispW = natW * coverScale * zoom;
-    var dispH = natH * coverScale * zoom;
+    var dispW = effNatW * coverScale * zoom;
+    var dispH = effNatH * coverScale * zoom;
     var maxOffX = Math.max(0, (dispW - Sw) / 2);
     var maxOffY = Math.max(0, (dispH - Sh) / 2);
     var ox = (fit && typeof fit.ox === 'number') ? fit.ox : 0;
     var oy = (fit && typeof fit.oy === 'number') ? fit.oy : 0;
     var left = (Sw - dispW) / 2 + ox * maxOffX;
     var top = (Sh - dispH) / 2 + oy * maxOffY;
-    img.style.width = dispW + 'px';
-    img.style.height = dispH + 'px';
-    img.style.left = left + 'px';
-    img.style.top = top + 'px';
+    var boxW = swapped ? dispH : dispW;
+    var boxH = swapped ? dispW : dispH;
+    var boxLeft = left + (dispW - boxW) / 2;
+    var boxTop = top + (dispH - boxH) / 2;
+    img.style.width = boxW + 'px';
+    img.style.height = boxH + 'px';
+    img.style.left = boxLeft + 'px';
+    img.style.top = boxTop + 'px';
+    img.style.transform = rot ? ('rotate(' + rot + 'deg)') : '';
+    img.style.transformOrigin = 'center center';
     img._maxOffX = maxOffX;
     img._maxOffY = maxOffY;
   }
@@ -1405,6 +1457,7 @@
 
     bigFrame.querySelectorAll('.frame-visual').forEach(function(n){ n.remove(); });
     bigFrame.insertBefore(buildFrameVisual(a, 'big'), bigFrame.firstChild);
+    if(rotatePhotoBtn){ rotatePhotoBtn.hidden = !(a.img && CAN_EDIT); }
 
     viewingRoom.classList.toggle('plaque-bottom', !a.side);
     viewingRoom.classList.toggle('plaque-left', a.side === 'left');
@@ -1773,7 +1826,7 @@
         var a = getArtwork(id);
         if(!a) return;
         a.img = res.imageUrl;
-        a.imgFit = {zoom:1, ox:0, oy:0};
+        a.imgFit = {zoom:1, ox:0, oy:0, rot:0};
         if(swapPhotoLabel){ swapPhotoLabel.textContent = 'Change photo'; }
         if(currentId === id){ openViewing(id); }
         refreshThumb(id);
@@ -1790,6 +1843,10 @@
   bigFileInput.addEventListener('change', function(e){
     if(currentId==null || !CAN_EDIT) return;
     var file = e.target.files && e.target.files[0];
+    // Reset the input's value so picking the exact same file again still
+    // fires "change" next time (browsers otherwise treat an unchanged
+    // selection as a no-op and never re-fire the event).
+    e.target.value = '';
     if(!file) return;
     var openedFor = currentId;
     compressImageFile(file, function(dataUrl){
@@ -1797,6 +1854,19 @@
       uploadPhoto(openedFor, dataUrl);
     });
   });
+
+  if(rotatePhotoBtn){
+    rotatePhotoBtn.addEventListener('click', function(){
+      if(currentId==null || !CAN_EDIT || !activeBigPhoto) return;
+      var a = getArtwork(currentId);
+      if(!a) return;
+      var fit = getImgFit(a);
+      fit.rot = ((fit.rot || 0) + 90) % 360;
+      layoutPhoto(activeBigPhoto.slot, activeBigPhoto.photo, fit);
+      refreshThumb(currentId);
+      scheduleSave(currentId, {img_fit: fit});
+    });
+  }
 
   function centerGallery(){
     var scrollEl = document.querySelector('.gallery-scroll');

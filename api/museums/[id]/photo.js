@@ -63,7 +63,14 @@ module.exports = async function handler(req, res) {
   }
 
   const { data: publicUrlData } = db.storage.from('museum-photos').getPublicUrl(path);
-  const imageUrl = publicUrlData.publicUrl;
+  // The storage path is deterministic (same museum + artwork + extension), so
+  // re-uploading a replacement photo reuses the exact same URL as before.
+  // Without a cache-busting suffix, browsers (and Supabase's CDN) keep
+  // serving the OLD cached image at that URL even though the file itself
+  // was replaced — which looks exactly like "changing the photo doesn't
+  // work." Appending a version stamp makes every upload's URL unique so the
+  // new photo always actually loads, both right away and on future visits.
+  const imageUrl = `${publicUrlData.publicUrl}?v=${Date.now()}`;
 
   await db.from('artworks').update({ image_path: imageUrl }).eq('id', artworkId);
 
