@@ -20,9 +20,41 @@ require.cache[supabaseAdminPath] = {
   exports: { supabaseAdmin: () => fakeDb },
 };
 
+// Fake out Gumroad verification and email sending too, so the webhook route
+// can be exercised locally (curl, or the e2e test) without a real Gumroad
+// account or Gmail credentials. Any sale_id starting with "sale-" verifies
+// successfully with a made-up buyer email; anything else fails, the same
+// way a forged sale_id would against the real API.
+const gumroadPath = require.resolve('../lib/gumroad');
+require.cache[gumroadPath] = {
+  id: gumroadPath,
+  filename: gumroadPath,
+  loaded: true,
+  exports: {
+    verifyGumroadSale: async (saleId) => {
+      if (!saleId.startsWith('sale-')) return { verified: false, sale: null };
+      return { verified: true, sale: { id: saleId, email: 'gift-buyer@example.com', product_permalink: 'museum-of-us' } };
+    },
+  },
+};
+const sentEmails = [];
+const emailPath = require.resolve('../lib/email');
+require.cache[emailPath] = {
+  id: emailPath,
+  filename: emailPath,
+  loaded: true,
+  exports: {
+    sendGiftEmail: async ({ to, editUrl }) => {
+      sentEmails.push({ to, editUrl });
+      console.log('(fake) email sent to', to, '->', editUrl);
+    },
+  },
+};
+
 const createHandler = require('../api/museums/index.js');
 const museumHandler = require('../api/museums/[id]/index.js');
 const photoHandler = require('../api/museums/[id]/photo.js');
+const gumroadWebhookHandler = require('../api/webhooks/gumroad.js');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
@@ -53,6 +85,14 @@ function readBody(req) {
     req.on('data', (c) => (chunks += c));
     req.on('end', () => {
       if (!chunks) return resolve({});
+      // Vercel's Node runtime auto-parses both JSON and form-urlencoded
+      // bodies into req.body based on Content-Type. Gumroad's real Ping
+      // notifications are sent as form-urlencoded, not JSON, so mimic that
+      // here too.
+      const contentType = req.headers['content-type'] || '';
+      if (contentType.includes('application/x-www-form-urlencoded')) {
+        return resolve(Object.fromEntries(new URLSearchParams(chunks)));
+      }
       try {
         resolve(JSON.parse(chunks));
       } catch (e) {
@@ -80,6 +120,14 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/museums' && req.method === 'POST') {
     const body = await readBody(req);
     return createHandler({ method: 'POST', body, query: {} }, makeVercelStyleRes(res));
+  }
+
+  if (pathname === '/api/webhooks/gumroad' && req.method === 'POST') {
+    const body = await readBody(req);
+    return gumroadWebhookHandler(
+      { method: 'POST', body, query: parsed.query, headers: req.headers },
+      makeVercelStyleRes(res)
+    );
   }
 
   const museumMatch = pathname.match(/^\/api\/museums\/([^/]+)$/);

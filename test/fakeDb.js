@@ -41,6 +41,7 @@ function makeFilterChain(rowsGetter, filters, opts) {
 function makeFakeDb() {
   const museums = new Map();
   const artworks = new Map();
+  const fulfillments = new Map();
   let counter = 1;
   const nextId = (prefix) => `${prefix}-${counter++}`;
 
@@ -109,9 +110,40 @@ function makeFakeDb() {
     };
   }
 
+  function fulfillmentsTable() {
+    return {
+      insert(obj) {
+        return {
+          select() {
+            return {
+              single() {
+                // Keyed on sale_id, same as the real table's primary key -
+                // a second insert for the same sale_id is a conflict, not
+                // a new row, mirroring Postgres' unique-constraint error.
+                if (fulfillments.has(obj.sale_id)) {
+                  return Promise.resolve({
+                    data: null,
+                    error: { message: 'duplicate key value violates unique constraint', code: '23505' },
+                  });
+                }
+                const row = { created_at: new Date().toISOString(), ...obj };
+                fulfillments.set(obj.sale_id, row);
+                return Promise.resolve({ data: row, error: null });
+              },
+            };
+          },
+        };
+      },
+      select() {
+        return makeFilterChain(() => [...fulfillments.values()], []);
+      },
+    };
+  }
+
   function from(table) {
     if (table === 'museums') return museumsTable();
     if (table === 'artworks') return artworksTable();
+    if (table === 'fulfillments') return fulfillmentsTable();
     throw new Error(`fakeDb: unknown table ${table}`);
   }
 
@@ -130,7 +162,7 @@ function makeFakeDb() {
     },
   };
 
-  return { from, storage, _debug: { museums, artworks, storageFiles } };
+  return { from, storage, _debug: { museums, artworks, fulfillments, storageFiles } };
 }
 
 module.exports = { makeFakeDb };

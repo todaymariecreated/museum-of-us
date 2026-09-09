@@ -35,6 +35,16 @@ create table if not exists artworks (
 
 create index if not exists artworks_museum_id_idx on artworks (museum_id);
 
+-- One row per Gumroad sale that's been turned into a museum. Keyed on
+-- Gumroad's own sale_id so a retried or duplicate webhook ping can never
+-- create a second museum or send a second email for the same purchase.
+create table if not exists fulfillments (
+  sale_id text primary key,
+  museum_id uuid not null references museums(id) on delete cascade,
+  email text not null,
+  created_at timestamptz not null default now()
+);
+
 -- Row Level Security: on, with NO public policies.
 -- All reads and writes go through our Vercel API routes, which use the
 -- Supabase service-role key (server-side only, never sent to browsers) and
@@ -42,6 +52,7 @@ create index if not exists artworks_museum_id_idx on artworks (museum_id);
 -- (our API code) instead of split between Postgres policies and app logic.
 alter table museums enable row level security;
 alter table artworks enable row level security;
+alter table fulfillments enable row level security;
 
 -- Storage bucket for uploaded photos. Public read (so gift links can load
 -- images directly by URL); uploads only ever happen via the API routes

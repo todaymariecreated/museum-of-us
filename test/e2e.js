@@ -10,8 +10,7 @@ const { chromium } = require('playwright');
   });
 
   await page.goto(base + '/');
-  await page.click('#startBtn');
-  await page.waitForURL(/\/museum\.html\?/);
+  await page.waitForURL(/\/museum\.html\?/, { timeout: 5000 });
   console.log('redirected to museum page:', page.url());
 
   await page.waitForSelector('.frame-wrap', { timeout: 5000 });
@@ -100,6 +99,32 @@ const { chromium } = require('playwright');
   const imgAfterReset = await page.locator('.big-frame .photo-slot img').count();
   console.log('title after reset (expect empty):', JSON.stringify(titleAfterReset));
   console.log('photo after reset (expect 0):', imgAfterReset);
+
+  // Returning-visitor check: a visitor whose browser already has this
+  // museum remembered in localStorage.lastMuseum should land straight back
+  // on it instead of getting a brand new blank one.
+  const returningContext = await browser.newContext();
+  const returningPage = await returningContext.newPage();
+  await returningPage.addInitScript((storedData) => {
+    localStorage.setItem('lastMuseum', storedData);
+  }, JSON.stringify({ id: museumId, token: editToken }));
+  await returningPage.goto(base + '/');
+  await returningPage.waitForURL(/\/museum\.html\?/, { timeout: 5000 });
+  const returningUrl = new URL(returningPage.url());
+  console.log('returning visitor id matches original (expect true):', returningUrl.searchParams.get('id') === museumId);
+  console.log('returning visitor token matches original (expect true):', returningUrl.searchParams.get('token') === editToken);
+  await returningPage.close();
+  await returningContext.close();
+
+  // Brand-new visitor (separate context, empty localStorage) should get a
+  // different, freshly created museum.
+  const newVisitorContext = await browser.newContext();
+  const newVisitorPage = await newVisitorContext.newPage();
+  await newVisitorPage.goto(base + '/');
+  await newVisitorPage.waitForURL(/\/museum\.html\?/, { timeout: 5000 });
+  const newVisitorUrl = new URL(newVisitorPage.url());
+  console.log('new visitor gets a different museum id (expect true):', newVisitorUrl.searchParams.get('id') !== museumId);
+  await newVisitorContext.close();
 
   await browser.close();
   console.log('\nEnd-to-end run complete.');
