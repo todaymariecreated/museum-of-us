@@ -122,6 +122,7 @@
     display:flex;
     align-items:center;
     gap:10px;
+    transition:opacity .2s ease;
   }
 
   .preview-toggle{
@@ -174,23 +175,24 @@
   .music-toggle.is-playing .icon-music-on{display:block;}
 
   .reset-toggle{
-    width:40px;
-    height:40px;
-    border-radius:50%;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 18px;
     border:1px solid var(--gold-dim);
+    border-radius:20px;
     background:rgba(23,12,8,.78);
     color:var(--gold-bright);
-    display:flex;
-    align-items:center;
-    justify-content:center;
+    font-family:'Work Sans',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:.03em;
     cursor:pointer;
-    padding:0;
-    flex:none;
     box-shadow:0 6px 18px rgba(0,0,0,.35);
     transition:background .2s ease, border-color .2s ease, color .2s ease;
   }
   .reset-toggle:hover{background:rgba(23,12,8,.92); border-color:var(--gold);}
-  .reset-toggle svg{width:17px;height:17px;flex:none;}
+  .reset-toggle svg{width:15px;height:15px;flex:none;}
   body.preview-mode .reset-toggle{display:none;}
 
   .share-gift-toggle{
@@ -359,8 +361,8 @@
     .preview-toggle{padding:8px 13px; font-size:11.5px; gap:6px;}
     .music-toggle{width:34px; height:34px;}
     .music-toggle svg{width:15px;height:15px;}
-    .reset-toggle{width:34px; height:34px;}
-    .reset-toggle svg{width:15px;height:15px;}
+    .reset-toggle{padding:8px 13px; font-size:11.5px; gap:6px;}
+    .reset-toggle svg{width:13px;height:13px;}
     .share-gift-toggle{padding:8px 13px; font-size:11.5px; gap:6px;}
     .share-gift-toggle svg{width:13px;height:13px;}
   }
@@ -780,12 +782,13 @@
 <body>
 
 <div class="top-controls">
-  <button class="reset-toggle" id="resetToggle" type="button" aria-label="Reset all frames">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
-  </button>
   <button class="music-toggle" id="musicToggle" type="button" aria-label="Play music" aria-pressed="false">
     <svg class="icon-music-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><path d="M2 2l20 20" stroke-width="2"/></svg>
     <svg class="icon-music-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+  </button>
+  <button class="reset-toggle" id="resetToggle" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+    <span>Reset</span>
   </button>
   <button class="preview-toggle" id="previewToggle" type="button" aria-pressed="false">
     <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -865,7 +868,7 @@
           <input type="file" accept="image/*" id="bigFileInput">
         </label>
         <button type="button" class="rotate-photo" id="rotatePhotoBtn" aria-label="Rotate photo" title="Rotate photo" hidden>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="9" width="11" height="11" rx="1.3"/><path d="M13 6.5h2.5A3.5 3.5 0 0 1 19 10v2.5"/><path d="M15.8 4.2L18.5 6.5l-2.7 2.3"/></svg>
         </button>
       </div>
 
@@ -1478,6 +1481,16 @@
 
     viewingRoom.classList.add('open');
     viewingRoom.setAttribute('aria-hidden','false');
+
+    // The top-right controls sit close enough to the viewing card's close
+    // button that on some screen sizes they'd overlap it. Rather than
+    // pixel-chase every control bar width, just fade the bar out while a
+    // frame is genuinely open for editing (not the transient hover/tap
+    // preview popup, which shouldn't disturb it).
+    if(!previewMode && topControls){
+      topControls.style.opacity = '0';
+      topControls.style.pointerEvents = 'none';
+    }
   }
 
   function closeViewing(){
@@ -1486,6 +1499,10 @@
     viewingRoom.setAttribute('aria-hidden','true');
     currentId = null;
     activeBigPhoto = null;
+    if(topControls){
+      topControls.style.opacity = '1';
+      topControls.style.pointerEvents = '';
+    }
   }
 
   closeBtn.addEventListener('click', function(){ closeViewing(); });
